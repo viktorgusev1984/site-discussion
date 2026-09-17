@@ -106,7 +106,7 @@ comma-separated list of exact frontend origins (without trailing slashes).
 - `PUT /api/users/{username}/role?role=MODERATOR` (administrator only)
 - `GET /api/categories`, `GET /api/users/{username}`
 
-Accepted discussion sorts are `activity,desc`, `createdAt,desc`, and `voteCount,desc`. Search is case-insensitive across title and body. Mutation endpoints require `Authorization: Bearer <token>`. Authors can cancel their discussions; moderators and administrators can close or cancel them and attach Jira actions. Only administrators can grant or revoke the moderator role.
+Accepted discussion sorts are `activity,desc`, `createdAt,desc`, and `voteCount,desc`. Search is case-insensitive across title and body. Mutation endpoints require `Authorization: Bearer <token>`. Authors can cancel their discussions; moderators can close or cancel them and attach Jira actions. Administrators have every moderator capability, can edit or delete any discussion, and exclusively grant or revoke the moderator role.
 
 ## Migrations
 
