@@ -1,0 +1,3 @@
+package com.example.discussions.model;
+import com.fasterxml.jackson.annotation.JsonIgnore;import jakarta.persistence.*;import java.time.Instant;
+@Entity @Table(name="users") public class User {@Id @GeneratedValue(strategy=GenerationType.IDENTITY) public Long id;@Column(unique=true,nullable=false) public String username;@Column(unique=true,nullable=false) public String email;@JsonIgnore @Column(name="password_hash",nullable=false) public String passwordHash;@Column(name="display_name",nullable=false) public String displayName;public String bio;@Enumerated(EnumType.STRING) public Role role=Role.USER;@Column(name="created_at",nullable=false) public Instant createdAt=Instant.now();public enum Role{USER,ADMIN}}

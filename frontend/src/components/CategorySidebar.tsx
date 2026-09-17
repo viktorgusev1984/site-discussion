@@ -1,0 +1,2 @@
+import type {Category} from '../types';
+export default function CategorySidebar({items,selected,onSelect}:{items:Category[];selected:string;onSelect:(slug:string)=>void}){return <aside className="sidebar"><h3>Категории</h3><button className={!selected?'selected':''} onClick={()=>onSelect('')}>Все обсуждения</button>{items.map(c=><button key={c.id} className={selected===c.slug?'selected':''} onClick={()=>onSelect(c.slug)}><i style={{background:c.color}}/><span>{c.name}</span></button>)}</aside>}

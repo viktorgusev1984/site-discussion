@@ -1,0 +1,18 @@
+spring:
+  datasource:
+    url: ${DATABASE_URL:jdbc:postgresql://localhost:5432/discussions}
+    username: ${DATABASE_USER:discussions}
+    password: ${DATABASE_PASSWORD:discussions}
+  jpa:
+    open-in-view: false
+    hibernate:
+      ddl-auto: validate
+  flyway:
+    enabled: true
+app:
+  jwt:
+    secret: ${JWT_SECRET:change-this-development-secret-at-least-32-characters}
+    ttl: ${JWT_TTL:PT24H}
+springdoc:
+  swagger-ui:
+    path: /swagger-ui.html

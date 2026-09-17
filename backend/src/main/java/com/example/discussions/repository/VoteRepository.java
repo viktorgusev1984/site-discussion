@@ -1,0 +1,1 @@
+package com.example.discussions.repository;import com.example.discussions.model.*;import org.springframework.data.jpa.repository.JpaRepository;import java.util.Optional;public interface VoteRepository extends JpaRepository<Vote,Long>{Optional<Vote> findByUserAndDiscussion(User user,Discussion discussion);long countByDiscussion(Discussion discussion);}
