@@ -11,7 +11,7 @@ Browser → React 18 / TypeScript / Vite → REST / JWT → Spring Boot 3 / JPA
 ```
 
 - **`frontend/`** — responsive single-page app with React Router, Axios, Markdown preview, reusable discussion, voting, category, form, and threaded-comment components.
-- **`backend/`** — stateless Spring Web API. Spring Security verifies signed JWTs; Bean Validation protects request boundaries; author/admin checks protect mutations.
+- **`backend/`** — stateless Spring Web API. Spring Security verifies signed JWTs; Bean Validation protects request boundaries; author, moderator, and administrator checks protect mutations.
 - **PostgreSQL** — relational source of truth. The vote table has a database-level unique `(user_id, discussion_id)` constraint, so concurrent duplicate votes cannot persist.
 - **Flyway** owns schema evolution. Hibernate runs in validation-only mode.
 
@@ -72,7 +72,8 @@ Blueprint fields are documented in the official
    `VITE_API_URL` on the static site and `APP_CORS_ALLOWED_ORIGINS` on the API to
    the actual public URLs, then redeploy them.
 4. Open the static-site URL and sign in with the ready-made test account
-   (`demo` / `demo12345`), also shown on the login page. The API health check is
+   (`demo` / `demo12345`). Moderation can be tested with the administrator account
+   (`admin` / `admin12345`); both accounts are shown on the login page. The API health check is
    available at `/api/categories`, and Swagger UI is at `/swagger-ui.html` on the
    API service.
 
@@ -102,9 +103,11 @@ comma-separated list of exact frontend origins (without trailing slashes).
 - `GET|POST /api/discussions`, `GET|PUT|DELETE /api/discussions/{id}`
 - `POST /api/discussions/{id}/comments` (optional `parentId` creates a reply)
 - `PUT|DELETE /api/discussions/{id}/vote`
+- `PUT /api/discussions/{id}/close|cancel`, `POST /api/discussions/{id}/actions/jira`
+- `PUT /api/users/{username}/role?role=MODERATOR` (administrator only)
 - `GET /api/categories`, `GET /api/users/{username}`
 
-Accepted discussion sorts are `activity,desc`, `createdAt,desc`, and `voteCount,desc`. Search is case-insensitive across title and body. Mutation endpoints require `Authorization: Bearer <token>`. Only authors and administrators can update or delete content.
+Accepted discussion sorts are `activity,desc`, `createdAt,desc`, and `voteCount,desc`. Search is case-insensitive across title and body. Mutation endpoints require `Authorization: Bearer <token>`. Authors can cancel their discussions; moderators can close or cancel them and attach Jira actions. Administrators have every moderator capability, can edit or delete any discussion, and exclusively grant or revoke the moderator role.
 
 ## Migrations
 

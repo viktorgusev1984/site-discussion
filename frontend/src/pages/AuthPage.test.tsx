@@ -7,8 +7,15 @@ import AuthPage from './AuthPage';
 describe('demo login',()=>{
   it('fills the shared test account credentials',async()=>{
     render(<MemoryRouter><AuthPage/></MemoryRouter>);
-    await userEvent.click(screen.getByRole('button',{name:'Подставить данные'}));
+    await userEvent.click(screen.getByRole('button',{name:'Войти как пользователь'}));
     expect(screen.getByLabelText('Логин')).toHaveValue('demo');
     expect(screen.getByLabelText('Пароль')).toHaveValue('demo12345');
+  });
+
+  it('fills the administrator test account credentials',async()=>{
+    render(<MemoryRouter><AuthPage/></MemoryRouter>);
+    await userEvent.click(screen.getByRole('button',{name:'Войти как администратор'}));
+    expect(screen.getByLabelText('Логин')).toHaveValue('admin');
+    expect(screen.getByLabelText('Пароль')).toHaveValue('admin12345');
   });
 });
