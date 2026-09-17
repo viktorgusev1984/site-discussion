@@ -1,0 +1,52 @@
+services:
+  - type: web
+    name: open-ideas-api
+    runtime: docker
+    rootDir: backend
+    plan: free
+    healthCheckPath: /api/categories
+    envVars:
+      - key: DATABASE_HOST
+        fromDatabase:
+          name: open-ideas-db
+          property: host
+      - key: DATABASE_PORT
+        fromDatabase:
+          name: open-ideas-db
+          property: port
+      - key: DATABASE_NAME
+        fromDatabase:
+          name: open-ideas-db
+          property: database
+      - key: DATABASE_USER
+        fromDatabase:
+          name: open-ideas-db
+          property: user
+      - key: DATABASE_PASSWORD
+        fromDatabase:
+          name: open-ideas-db
+          property: password
+      - key: JWT_SECRET
+        generateValue: true
+      - key: APP_CORS_ALLOWED_ORIGINS
+        value: https://open-ideas.onrender.com
+
+  - type: web
+    name: open-ideas
+    runtime: static
+    rootDir: frontend
+    buildCommand: npm ci && npm run build
+    staticPublishPath: ./dist
+    envVars:
+      - key: VITE_API_URL
+        value: https://open-ideas-api.onrender.com/api
+    routes:
+      - type: rewrite
+        source: /*
+        destination: /index.html
+
+databases:
+  - name: open-ideas-db
+    plan: free
+    databaseName: discussions
+    user: discussions
