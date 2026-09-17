@@ -19,7 +19,9 @@ describe('authenticated header',()=>{
 
     expect(screen.getByRole('img',{name:'Аватар: Тестовый пользователь'}).querySelector('svg')).toBeInTheDocument();
     expect(screen.queryByRole('link',{name:/Профиль/})).not.toBeInTheDocument();
-    await userEvent.click(screen.getByRole('button',{name:'Меню пользователя'}));
+    const accountButton=screen.getByRole('button',{name:'Открыть меню пользователя Тестовый пользователь'});
+    expect(accountButton).toContainElement(screen.getByRole('img',{name:'Аватар: Тестовый пользователь'}));
+    await userEvent.click(accountButton);
 
     const profile=screen.getByRole('menuitem',{name:/Профиль/});
     expect(profile).toHaveAttribute('href','/users/demo');
