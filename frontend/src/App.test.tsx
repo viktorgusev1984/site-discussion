@@ -21,6 +21,7 @@ describe('authenticated header',()=>{
     expect(screen.queryByRole('link',{name:/Профиль/})).not.toBeInTheDocument();
     const accountButton=screen.getByRole('button',{name:'Открыть меню пользователя Тестовый пользователь'});
     expect(accountButton).toContainElement(screen.getByRole('img',{name:'Аватар: Тестовый пользователь'}));
+    expect(screen.getByRole('link',{name:'Обсуждения'})).toHaveClass('header-discussions');
     await userEvent.click(accountButton);
 
     expect(screen.getByRole('menu',{name:'Меню пользователя'})).toBeInTheDocument();
