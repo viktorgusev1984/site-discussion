@@ -1,41 +1,20 @@
-import {useRef, useState} from 'react';
+import {useId,useRef,useState} from 'react';
 import ReactMarkdown from 'react-markdown';
 import {uploadImage} from '../api/discussions';
 
-type Props = {value:string;onChange:(value:string)=>void;error?:string;label?:string;placeholder?:string};
-
+type Props={value:string;onChange:(value:string)=>void;error?:string;label?:string;placeholder?:string};
+type IconName='heading'|'bold'|'italic'|'quote'|'code'|'link'|'bullet'|'numbered'|'task'|'mention'|'upload';
+const icons:Record<IconName,JSX.Element>={
+heading:<path d="M3 2v12M3 8h8M11 2v12"/>,bold:<path d="M4 2.5h4.5a3 3 0 0 1 0 6H4m0 0h5a3 3 0 0 1 0 6H4v-12"/>,italic:<path d="M7 2.5h6m-10 11h6m1-11-4 11"/>,quote:<path d="M3 4h10M3 8h7m-7 4h10"/>,code:<path d="m5 4-4 4 4 4m6-8 4 4-4 4"/>,link:<><path d="m6.5 9.5 3-3"/><path d="M5.5 11.5 4 13a2.8 2.8 0 0 1-4-4l2.5-2.5a2.8 2.8 0 0 1 4 0M10.5 4.5 12 3a2.8 2.8 0 0 1 4 4l-2.5 2.5a2.8 2.8 0 0 1-4 0"/></>,bullet:<><path d="M6 4h9M6 8h9M6 12h9"/><circle cx="2.5" cy="4" r=".7"/><circle cx="2.5" cy="8" r=".7"/><circle cx="2.5" cy="12" r=".7"/></>,numbered:<><path d="M6 4h9M6 8h9M6 12h9M2 2.5h1v3M2 8h1.5L2 10h1.5M2 12.5h1.5l-1.2 1 1.2 1"/></>,task:<><rect x="1.5" y="2" width="13" height="12" rx="1"/><path d="m5 8 2 2 4-4"/></>,mention:<><circle cx="8" cy="8" r="3"/><path d="M11 8v1a2 2 0 0 0 4 0V8a7 7 0 1 0-2.5 5.35"/></>,upload:<><path d="M8 11V1m0 0L4.5 4.5M8 1l3.5 3.5M2 10v3.5A1.5 1.5 0 0 0 3.5 15h9a1.5 1.5 0 0 0 1.5-1.5V10"/></>};
+function Icon({name}:{name:IconName}){return <svg viewBox="0 0 16 16" aria-hidden="true">{icons[name]}</svg>}
 export default function MarkdownEditor({value,onChange,error,label='Описание',placeholder='Подробно опишите идею…'}:Props){
-  const [preview,setPreview]=useState(false),[uploading,setUploading]=useState(false),[uploadError,setUploadError]=useState('');
-  const textarea=useRef<HTMLTextAreaElement>(null),fileInput=useRef<HTMLInputElement>(null);
-  function insert(before:string,after='',fallback=''){
-    const field=textarea.current,start=field?.selectionStart??value.length,end=field?.selectionEnd??value.length,selected=value.slice(start,end)||fallback;
-    onChange(`${value.slice(0,start)}${before}${selected}${after}${value.slice(end)}`);
-    requestAnimationFrame(()=>{field?.focus();field?.setSelectionRange(start+before.length,start+before.length+selected.length)});
-  }
-  async function attach(files:FileList|File[]){
-    const images=Array.from(files).filter(file=>file.type.startsWith('image/'));
-    if(!images.length){setUploadError('Можно прикреплять только изображения');return}
-    setUploading(true);setUploadError('');
-    try{
-      const uploaded=await Promise.all(images.map(uploadImage));
-      const markdown=uploaded.map(item=>`![${item.name}](${item.url})`).join('\n\n');
-      insert(`${value&&!value.endsWith('\n')?'\n\n':''}${markdown}\n`);
-    }catch{setUploadError('Не удалось загрузить изображение. Попробуйте ещё раз.')}
-    finally{setUploading(false);if(fileInput.current)fileInput.current.value=''}
-  }
-  return <div className={`editor ${error?'invalid':''}`}>
-    <div className="editor-tabs"><button type="button" className={!preview?'active':''} onClick={()=>setPreview(false)}>Написать</button><button type="button" className={preview?'active':''} onClick={()=>setPreview(true)}>Предпросмотр</button><span>Поддерживается Markdown</span></div>
-    {!preview&&<div className="editor-toolbar" aria-label="Панель форматирования">
-      <button type="button" title="Жирный" aria-label="Жирный" onClick={()=>insert('**','**','текст')}><b>B</b></button>
-      <button type="button" title="Курсив" aria-label="Курсив" onClick={()=>insert('_','_','текст')}><i>I</i></button>
-      <button type="button" title="Заголовок" aria-label="Формат: заголовок" onClick={()=>insert('## ','','Заголовок')}>H</button>
-      <button type="button" title="Ссылка" aria-label="Ссылка" onClick={()=>insert('[','](https://)','текст ссылки')}>🔗</button>
-      <button type="button" title="Список" aria-label="Список" onClick={()=>insert('- ','','пункт списка')}>☷</button>
-      <button type="button" className="attach-button" disabled={uploading} onClick={()=>fileInput.current?.click()}>📎 {uploading?'Загрузка…':'Прикрепить изображение'}</button>
-      <input ref={fileInput} className="visually-hidden" type="file" accept="image/png,image/jpeg,image/gif,image/webp" multiple onChange={event=>event.target.files&&attach(event.target.files)}/>
-    </div>}
-    {preview?<div className="preview markdown"><ReactMarkdown>{value||'*Здесь появится предпросмотр*'}</ReactMarkdown></div>:<textarea ref={textarea} aria-label={label} value={value} onChange={event=>onChange(event.target.value)} onPaste={event=>{const images=Array.from(event.clipboardData.files).filter(file=>file.type.startsWith('image/'));if(images.length){event.preventDefault();attach(images)}}} onDragOver={event=>event.preventDefault()} onDrop={event=>{if(event.dataTransfer.files.length){event.preventDefault();attach(event.dataTransfer.files)}}} placeholder={placeholder} rows={12}/>}
-    <div className="editor-help">Перетащите картинку сюда или вставьте скриншот из буфера обмена</div>
-    {(error||uploadError)&&<small className="error">{error||uploadError}</small>}
-  </div>
+ const [preview,setPreview]=useState(false),[uploading,setUploading]=useState(false),[uploadError,setUploadError]=useState('');
+ const textarea=useRef<HTMLTextAreaElement>(null),fileInput=useRef<HTMLInputElement>(null),tabsId=useId();
+ function insert(before:string,after='',fallback=''){const field=textarea.current,start=field?.selectionStart??value.length,end=field?.selectionEnd??value.length,selected=value.slice(start,end)||fallback;onChange(`${value.slice(0,start)}${before}${selected}${after}${value.slice(end)}`);requestAnimationFrame(()=>{field?.focus();field?.setSelectionRange(start+before.length,start+before.length+selected.length)})}
+ function prefixLines(prefix:string,fallback:string){const field=textarea.current,start=field?.selectionStart??value.length,end=field?.selectionEnd??value.length,lineStart=value.lastIndexOf('\n',start-1)+1,nextBreak=value.indexOf('\n',end),lineEnd=nextBreak<0?value.length:nextBreak,selected=value.slice(lineStart,lineEnd)||fallback,formatted=selected.split('\n').map((line,index)=>prefix.replace('{n}',String(index+1))+line).join('\n');onChange(value.slice(0,lineStart)+formatted+value.slice(lineEnd));requestAnimationFrame(()=>{field?.focus();field?.setSelectionRange(lineStart,lineStart+formatted.length)})}
+ async function attach(files:FileList|File[]){const images=Array.from(files).filter(file=>file.type.startsWith('image/'));if(!images.length){setUploadError('Можно прикреплять только изображения');return}setUploading(true);setUploadError('');try{const uploaded=await Promise.all(images.map(uploadImage));insert(`${value&&!value.endsWith('\n')?'\n\n':''}${uploaded.map(item=>`![${item.name}](${item.url})`).join('\n\n')}\n`)}catch{setUploadError('Не удалось загрузить изображение. Попробуйте ещё раз.')}finally{setUploading(false);if(fileInput.current)fileInput.current.value=''}}
+ const tool=(icon:IconName,title:string,action:()=>void)=><button type="button" title={title} aria-label={title} onClick={action}><Icon name={icon}/></button>;
+ return <div className={`editor ${error?'invalid':''}`}><div className="editor-tabs" role="tablist" aria-label="Режим редактора"><button id={`${tabsId}-write`} type="button" role="tab" aria-selected={!preview} className={!preview?'active':''} onClick={()=>setPreview(false)}>Написать</button><button id={`${tabsId}-preview`} type="button" role="tab" aria-selected={preview} className={preview?'active':''} onClick={()=>setPreview(true)}>Предпросмотр</button></div>
+ {!preview&&<div className="editor-toolbar" aria-label="Панель форматирования"><div className="editor-tool-group">{tool('heading','Формат: заголовок',()=>prefixLines('## ','Заголовок'))}{tool('bold','Жирный (Ctrl+B)',()=>insert('**','**','жирный текст'))}{tool('italic','Курсив (Ctrl+I)',()=>insert('_','_','курсив'))}</div><i/><div className="editor-tool-group">{tool('quote','Цитата',()=>prefixLines('> ','Цитата'))}{tool('code','Код',()=>insert('`','`','код'))}{tool('link','Ссылка',()=>insert('[','](https://)','текст ссылки'))}</div><i/><div className="editor-tool-group">{tool('bullet','Маркированный список',()=>prefixLines('- ','пункт списка'))}{tool('numbered','Нумерованный список',()=>prefixLines('{n}. ','пункт списка'))}{tool('task','Список задач',()=>prefixLines('- [ ] ','задача'))}</div><div className="editor-tool-group editor-tools-end">{tool('mention','Упомянуть пользователя',()=>insert('@','','пользователь'))}<button type="button" title="Прикрепить изображение" aria-label="Прикрепить изображение" disabled={uploading} onClick={()=>fileInput.current?.click()}><Icon name="upload"/></button></div><input ref={fileInput} className="visually-hidden" type="file" accept="image/png,image/jpeg,image/gif,image/webp" multiple onChange={event=>event.target.files&&attach(event.target.files)}/></div>}
+ {preview?<div className="preview markdown" role="tabpanel" aria-labelledby={`${tabsId}-preview`}><ReactMarkdown>{value||'*Здесь появится предпросмотр*'}</ReactMarkdown></div>:<textarea ref={textarea} role="tabpanel" aria-labelledby={`${tabsId}-write`} aria-label={label} value={value} onChange={event=>onChange(event.target.value)} onKeyDown={event=>{if((event.ctrlKey||event.metaKey)&&event.key.toLowerCase()==='b'){event.preventDefault();insert('**','**','жирный текст')}if((event.ctrlKey||event.metaKey)&&event.key.toLowerCase()==='i'){event.preventDefault();insert('_','_','курсив')}}} onPaste={event=>{const images=Array.from(event.clipboardData.files).filter(file=>file.type.startsWith('image/'));if(images.length){event.preventDefault();attach(images)}}} onDragOver={event=>event.preventDefault()} onDrop={event=>{if(event.dataTransfer.files.length){event.preventDefault();attach(event.dataTransfer.files)}}} placeholder={placeholder} rows={10}/>}<div className="editor-help"><span>Markdown поддерживается</span><span>Перетащите или вставьте изображение</span></div>{(error||uploadError)&&<small className="error">{error||uploadError}</small>}</div>
 }
