@@ -1,1 +1,7 @@
-package com.example.discussions.repository;import com.example.discussions.model.Discussion;import org.springframework.data.domain.*;import org.springframework.data.jpa.repository.*;import org.springframework.data.repository.query.Param;public interface DiscussionRepository extends JpaRepository<Discussion,Long>{@Query("select d from Discussion d left join d.votes v where (:q is null or lower(d.title) like lower(concat('%',:q,'%')) or lower(d.body) like lower(concat('%',:q,'%'))) and (:category is null or d.category.slug=:category) and (:status is null or d.status=:status) group by d order by case when :sort='votes' then count(v) end desc, case when :sort='created' then d.createdAt end desc, case when :sort='activity' then d.updatedAt end desc") Page<Discussion> search(@Param("q")String q,@Param("category")String category,@Param("status")Discussion.Status status,@Param("sort")String sort,Pageable pageable);}
+package com.example.discussions.repository;
+
+import com.example.discussions.model.Discussion;
+import org.springframework.data.jpa.repository.JpaRepository;
+
+public interface DiscussionRepository
+        extends JpaRepository<Discussion, Long>, DiscussionSearchRepository {}
