@@ -23,6 +23,7 @@ describe('authenticated header',()=>{
     expect(accountButton).toContainElement(screen.getByRole('img',{name:'Аватар: Тестовый пользователь'}));
     await userEvent.click(accountButton);
 
+    expect(screen.getByRole('menu',{name:'Меню пользователя'})).toBeInTheDocument();
     const profile=screen.getByRole('menuitem',{name:/Профиль/});
     expect(profile).toHaveAttribute('href','/users/demo');
     expect(screen.queryByRole('link',{name:'Войти'})).not.toBeInTheDocument();
