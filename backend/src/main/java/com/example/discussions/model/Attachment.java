@@ -9,7 +9,7 @@ import java.util.UUID;
 public class Attachment {
     @Id public UUID id;
     @Column(nullable = false, length = 255) public String originalName;
-    @Column(nullable = false, length = 50) public String contentType;
+    @Column(nullable = false, length = 127) public String contentType;
     @Column(nullable = false) public long size;
     @Column(nullable = false, columnDefinition = "bytea") public byte[] data;
     @ManyToOne(fetch = FetchType.LAZY, optional = false) public User uploader;

@@ -1,0 +1,1 @@
+ALTER TABLE attachments ALTER COLUMN content_type TYPE VARCHAR(127);
