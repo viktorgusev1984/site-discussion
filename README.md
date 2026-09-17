@@ -51,6 +51,49 @@ Open the UI at <http://localhost:3000>, the API at <http://localhost:8080/api>, 
 
 Do not commit `.env`; only `.env.example` is versioned.
 
+## Free test deployment on Render
+
+[Render](https://render.com/docs) is a cloud application platform (PaaS): it builds
+the project from a Git repository, runs web services, publishes static sites, and
+can provision managed PostgreSQL databases. Unlike a VPS, it does not require
+manually installing Java, Nginx, PostgreSQL, or configuring HTTPS on a server.
+
+The repository includes a [Render Blueprint](https://render.com/docs/infrastructure-as-code)
+(`render.yaml`) that provisions three resources: the React static site, the Spring
+Boot Docker service, and PostgreSQL. This is the simplest way to put the complete
+application online for a demo without changing its architecture. The available
+Blueprint fields are documented in the official
+[Blueprint specification](https://render.com/docs/blueprint-spec).
+
+1. Push the repository to GitHub or GitLab.
+2. In the Render dashboard choose **New → Blueprint**, connect the repository, and
+   apply `render.yaml`.
+3. If Render changes either service name because it is already taken, update both
+   `VITE_API_URL` on the static site and `APP_CORS_ALLOWED_ORIGINS` on the API to
+   the actual public URLs, then redeploy them.
+4. Open the static-site URL and register a test user. The API health check is
+   available at `/api/categories`, and Swagger UI is at `/swagger-ui.html` on the
+   API service.
+
+Before deploying, review Render's current [free-instance limitations](https://render.com/docs/free).
+Free instances can sleep after inactivity and the first request may therefore be
+slow. Render's free PostgreSQL is intended only for short-lived testing and may
+expire; export any data that matters. For a longer-lived free demo, create a free
+PostgreSQL database at Neon, replace `DATABASE_URL` with its JDBC connection URL
+(`jdbc:postgresql://...`), and set `DATABASE_USER` and `DATABASE_PASSWORD` from
+the Neon credentials.
+
+Useful official references:
+
+- [Render documentation](https://render.com/docs)
+- [Deploying a Spring Boot application](https://render.com/docs/deploy-spring-boot)
+- [Static sites](https://render.com/docs/static-sites)
+- [Render Postgres](https://render.com/docs/postgresql-creating-connecting)
+
+The API also supports platform-assigned ports via `PORT`. For deployments where
+the frontend and API use different origins, set `APP_CORS_ALLOWED_ORIGINS` to a
+comma-separated list of exact frontend origins (without trailing slashes).
+
 ## API overview
 
 - `POST /api/auth/register`, `POST /api/auth/login`

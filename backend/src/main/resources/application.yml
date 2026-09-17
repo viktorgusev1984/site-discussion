@@ -1,6 +1,6 @@
 spring:
   datasource:
-    url: ${DATABASE_URL:jdbc:postgresql://localhost:5432/discussions}
+    url: ${DATABASE_URL:jdbc:postgresql://${DATABASE_HOST:localhost}:${DATABASE_PORT:5432}/${DATABASE_NAME:discussions}}
     username: ${DATABASE_USER:discussions}
     password: ${DATABASE_PASSWORD:discussions}
   jpa:
@@ -16,3 +16,5 @@ app:
 springdoc:
   swagger-ui:
     path: /swagger-ui.html
+server:
+  port: ${PORT:8080}
