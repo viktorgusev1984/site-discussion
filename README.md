@@ -72,7 +72,8 @@ Blueprint fields are documented in the official
    `VITE_API_URL` on the static site and `APP_CORS_ALLOWED_ORIGINS` on the API to
    the actual public URLs, then redeploy them.
 4. Open the static-site URL and sign in with the ready-made test account
-   (`demo` / `demo12345`), also shown on the login page. The API health check is
+   (`demo` / `demo12345`). Moderation can be tested with the administrator account
+   (`admin` / `admin12345`); both accounts are shown on the login page. The API health check is
    available at `/api/categories`, and Swagger UI is at `/swagger-ui.html` on the
    API service.
 
