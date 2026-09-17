@@ -9,6 +9,10 @@ spring:
       ddl-auto: validate
   flyway:
     enabled: true
+  servlet:
+    multipart:
+      max-file-size: 8MB
+      max-request-size: 32MB
 app:
   jwt:
     secret: ${JWT_SECRET:change-this-development-secret-at-least-32-characters}
