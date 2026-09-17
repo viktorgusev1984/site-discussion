@@ -1,0 +1,1 @@
+package com.example.discussions;import com.example.discussions.model.Comment;import org.junit.jupiter.api.Test;import static org.junit.jupiter.api.Assertions.*;class CommentThreadTest{@Test void supportsNestedReplies(){var root=new Comment();root.id=1L;var reply=new Comment();reply.parent=root;root.replies.add(reply);assertSame(root,root.replies.getFirst().parent);}}

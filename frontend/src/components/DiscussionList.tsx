@@ -1,0 +1,2 @@
+import type {Discussion} from '../types';import DiscussionCard from './DiscussionCard';
+export default function DiscussionList({items,loading=false}:{items:Discussion[];loading?:boolean}){if(loading)return <div className="state">Загрузка обсуждений…</div>;if(!items.length)return <div className="state"><b>Ничего не найдено</b><span>Попробуйте изменить фильтры или создать новую идею.</span></div>;return <div className="discussion-list">{items.map(x=><DiscussionCard key={x.id} item={x}/>)}</div>}
