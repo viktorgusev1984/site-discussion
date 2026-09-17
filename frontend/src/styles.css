@@ -15,4 +15,8 @@
 .demo-account-row{display:flex;flex-direction:column;gap:5px;padding-top:4px}.demo-account-row+.demo-account-row{margin-top:5px;padding-top:10px;border-top:1px solid #b6e3c4}
 
 /* User profile */
+/* The global `header nav a` rule is more specific than `.account-menu a`.
+   Keep menu links dark against the white dropdown instead of inheriting the
+   pale header-link colour. */
+header nav a.account-menu-profile{color:#24292f}header nav a.account-menu-profile:hover{color:#0969da}
 .profile{grid-template-columns:240px minmax(0,1fr)}.profile-summary{align-self:start;padding:24px;background:#fff;border:1px solid #d0d7de;border-radius:10px}.profile-avatar{margin:0 auto 20px}.profile h1{margin:0 0 2px;font-size:26px;overflow-wrap:anywhere}.profile-username{color:#57606a;font-weight:400}.profile-summary p{line-height:1.5}.profile-discussions-heading{display:flex;align-items:center;gap:9px;margin-bottom:14px}.profile-discussions-heading h2{margin:0}.profile-discussions-heading span{min-width:24px;padding:2px 7px;border-radius:99px;background:#d8dee4;color:#424a53;font-size:12px;font-weight:700;text-align:center}.profile-state{max-width:952px;margin:36px auto}.profile-discussions>.state{background:#fff}@media(max-width:700px){.profile-summary{text-align:center}.profile-avatar{margin:0 auto 20px}.profile-discussions-heading{justify-content:center}}
