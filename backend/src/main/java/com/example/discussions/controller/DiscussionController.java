@@ -1,6 +1,7 @@
 package com.example.discussions.controller;
 
 import com.example.discussions.dto.Requests.*;
+import com.example.discussions.dto.Responses;
 import com.example.discussions.dto.Responses.*;
 import com.example.discussions.exception.ApiException;
 import com.example.discussions.model.*;
@@ -54,7 +55,7 @@ public class DiscussionController {
   private Discussion find(Long id){return discussions.findById(id).orElseThrow(()->ApiException.notFound("Обсуждение не найдено"));}
   private Comment findComment(Long id){return comments.findById(id).orElseThrow(()->ApiException.notFound("Комментарий не найден"));}
   private void apply(Discussion d,DiscussionInput in){d.title=in.title();d.body=in.body();d.category=categories.findById(in.categoryId()).orElseThrow(()->ApiException.notFound("Категория не найдена"));}
-  private DiscussionView view(Discussion d){var u=current.optional();var roots=d.comments.stream().filter(c->c.parent==null).map(this::commentView).toList();return new DiscussionView(d.id,d.title,d.body,d.status.name(),d.author,d.category,votes.countByDiscussion(d),d.comments.size(),u.flatMap(x->votes.findByUserAndDiscussion(x,d)).isPresent(),reactionViews(reactions.findByDiscussion(d)),d.createdAt,d.updatedAt,roots,d.actions);}
+  private DiscussionView view(Discussion d){var u=current.optional();var roots=d.comments.stream().filter(c->c.parent==null).map(this::commentView).toList();return new DiscussionView(d.id,d.title,d.body,d.status.name(),d.author,d.category,votes.countByDiscussion(d),d.comments.size(),u.flatMap(x->votes.findByUserAndDiscussion(x,d)).isPresent(),reactionViews(reactions.findByDiscussion(d)),d.createdAt,d.updatedAt,roots,Responses.actionViews(d));}
   private CommentView commentView(Comment c){var u=current.optional();return new CommentView(c.id,c.body,c.author,c.createdAt,commentVotes.countByComment(c),u.flatMap(x->commentVotes.findByUserAndComment(x,c)).isPresent(),reactionViews(reactions.findByComment(c)),c.replies.stream().map(this::commentView).toList());}
   private List<ReactionView> reactionViews(List<Reaction> items){var me=current.optional();return items.stream().collect(Collectors.groupingBy(r->r.emoji,LinkedHashMap::new,Collectors.toList())).entrySet().stream().map(e->new ReactionView(e.getKey(),e.getValue().size(),me.map(u->e.getValue().stream().anyMatch(r->r.user.id.equals(u.id))).orElse(false))).toList();}
   private void validateEmoji(String emoji){if(!ALLOWED_EMOJIS.contains(emoji))throw ApiException.badRequest("Недопустимая реакция");}
