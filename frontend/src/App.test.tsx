@@ -27,6 +27,7 @@ describe('authenticated header',()=>{
     expect(screen.getByRole('menu',{name:'Меню пользователя'})).toBeInTheDocument();
     const profile=screen.getByRole('menuitem',{name:/Профиль/});
     expect(profile).toHaveAttribute('href','/users/demo');
+    expect(profile).toHaveClass('account-menu-profile');
     expect(screen.queryByRole('link',{name:'Войти'})).not.toBeInTheDocument();
 
     await userEvent.click(screen.getByRole('menuitem',{name:/Выйти/}));
