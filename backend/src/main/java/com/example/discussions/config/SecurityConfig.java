@@ -47,12 +47,14 @@ public class SecurityConfig {
                 }))
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(authorize -> authorize
-                        .requestMatchers(HttpMethod.GET, "/api/attachments/**").permitAll()
-                        .requestMatchers(
-                                "/api/auth/**",
+                        .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
+                        .requestMatchers(HttpMethod.GET,
                                 "/api/discussions/**",
                                 "/api/categories",
                                 "/api/users/**",
+                                "/api/attachments/**").permitAll()
+                        .requestMatchers(
+                                "/api/auth/**",
                                 "/swagger-ui/**",
                                 "/v3/api-docs/**")
                         .permitAll()
