@@ -1,6 +1,6 @@
 import {render,screen} from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import {MemoryRouter} from 'react-router-dom';
+import {MemoryRouter,Route,Routes,useLocation} from 'react-router-dom';
 import {afterEach,describe,expect,it,vi} from 'vitest';
 import AuthPage from './AuthPage';
 import {authApi} from '../api/discussions';
@@ -40,5 +40,25 @@ describe('demo login',()=>{
     expect(screen.getByLabelText('Логин')).toBeDisabled();
 
     finishLogin({token:'test-token',user:{id:1,username:'demo',displayName:'Demo'}});
+  });
+
+  it('returns to the requested discussion after login',async()=>{
+    vi.spyOn(authApi,'login').mockResolvedValue({token:'test-token',user:{id:1,username:'demo',displayName:'Demo'}});
+    const CurrentLocation=()=>{
+      const location=useLocation();
+      return <div>{location.pathname}{location.search}{location.hash}</div>;
+    };
+    render(<MemoryRouter initialEntries={[{pathname:'/login',state:{from:'/discussions/42?sort=new#comments'}}]}>
+      <Routes>
+        <Route path="/login" element={<AuthPage/>}/>
+        <Route path="/discussions/:id" element={<CurrentLocation/>}/>
+      </Routes>
+    </MemoryRouter>);
+
+    await userEvent.type(screen.getByLabelText('Логин'),'demo');
+    await userEvent.type(screen.getByLabelText('Пароль'),'demo12345');
+    await userEvent.click(screen.getByRole('button',{name:'Войти'}));
+
+    expect(await screen.findByText('/discussions/42?sort=new#comments')).toBeInTheDocument();
   });
 });

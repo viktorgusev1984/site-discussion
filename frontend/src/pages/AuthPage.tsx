@@ -1,5 +1,5 @@
 import {useState} from 'react';
-import {Link,useNavigate} from 'react-router-dom';
+import {Link,useLocation,useNavigate} from 'react-router-dom';
 import {authApi} from '../api/discussions';
 import {useAuth} from '../auth/AuthContext';
 
@@ -10,6 +10,7 @@ const DEMO_ACCOUNTS=[
 
 export default function AuthPage({register=false}:{register?:boolean}){
   const nav=useNavigate();
+  const location=useLocation();
   const {signIn}=useAuth();
   const [form,setForm]=useState({username:'',displayName:'',email:'',password:''});
   const [error,setError]=useState('');
@@ -24,7 +25,9 @@ export default function AuthPage({register=false}:{register?:boolean}){
     try{
       const data=register?await authApi.register(form):await authApi.login(form);
       signIn(data);
-      nav('/');
+      const requestedPath=(location.state as {from?:unknown}|null)?.from;
+      const returnTo=typeof requestedPath==='string'&&requestedPath.startsWith('/')&&!requestedPath.startsWith('//')?requestedPath:'/';
+      nav(returnTo,{replace:true});
     }catch{
       setError('Не удалось выполнить запрос. Проверьте данные.');
       setIsSubmitting(false);
@@ -61,7 +64,7 @@ export default function AuthPage({register=false}:{register?:boolean}){
         {isSubmitting&&<span className="button-spinner" aria-hidden="true"/>}
         <span>{isSubmitting?'Подождите…':submitLabel}</span>
       </button>
-      <small>{register?'Уже есть аккаунт?':'Нет аккаунта?'} <Link to={register?'/login':'/register'}>{register?'Войти':'Регистрация'}</Link></small>
+      <small>{register?'Уже есть аккаунт?':'Нет аккаунта?'} <Link to={register?'/login':'/register'} state={location.state}>{register?'Войти':'Регистрация'}</Link></small>
     </form>
   </main>;
 }
