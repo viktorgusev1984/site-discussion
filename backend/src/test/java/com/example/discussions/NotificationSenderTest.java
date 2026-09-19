@@ -14,8 +14,24 @@ import javax.crypto.Mac;
 import javax.crypto.spec.SecretKeySpec;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
+import org.springframework.mail.SimpleMailMessage;
+import org.springframework.mail.javamail.JavaMailSender;
 
 class NotificationSenderTest {
+  @Test void emailNotificationsAlwaysUseApplicationSender() {
+    var mail = mock(JavaMailSender.class);
+    var recipient = new User(); recipient.email = "recipient@example.com";
+    var delivery = new NotificationDelivery();
+    delivery.recipient = recipient; delivery.eventType = "CHANNEL_TEST"; delivery.payload = "Test";
+
+    new EmailNotificationSender(mail, "sender@example.com").send(delivery);
+
+    var message = ArgumentCaptor.forClass(SimpleMailMessage.class);
+    verify(mail).send(message.capture());
+    assertEquals("open-ideas <sender@example.com>", message.getValue().getFrom());
+    assertArrayEquals(new String[] {"recipient@example.com"}, message.getValue().getTo());
+  }
+
   @Test void customWebhookHasPayloadIdempotencyAndValidHmac() throws Exception {
     var client = mock(SafeWebhookClient.class);
     var secrets = secrets();
