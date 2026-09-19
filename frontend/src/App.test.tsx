@@ -37,3 +37,12 @@ describe('authenticated header',()=>{
     expect(localStorage.getItem('token')).toBeNull();
   });
 });
+
+describe('protected notification settings',()=>{
+  beforeEach(()=>{localStorage.clear();history.pushState({},'', '/settings/notifications')});
+  it('redirects a guest to login',async()=>{
+    render(<App/>);
+    expect(await screen.findByRole('heading',{name:'С возвращением'})).toBeInTheDocument();
+    expect(location.pathname).toBe('/login');
+  });
+});

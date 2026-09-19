@@ -38,4 +38,21 @@ class NotificationDeliveryWorkerTest {
 
     verify(service).failed(7L, "Delivery failed (IllegalStateException)", 3, Duration.ofSeconds(2));
   }
+
+  @Test void delegatesTerminalFailureDecisionAfterTheLastAttempt() throws Exception {
+    NotificationService service = mock(NotificationService.class);
+    NotificationSender webhook = mock(NotificationSender.class);
+    when(webhook.channelType()).thenReturn(NotificationChannelType.WEBHOOK);
+    NotificationDelivery delivery = new NotificationDelivery(); delivery.id = 8L;
+    delivery.channelType = NotificationChannelType.WEBHOOK; delivery.attempts = 3;
+    when(service.claimNext()).thenReturn(Optional.of(delivery), Optional.empty());
+    doThrow(new java.net.http.HttpTimeoutException("timed out")).when(webhook).send(delivery);
+    var properties = new NotificationProperties("", Duration.ofSeconds(1), 3, Duration.ofSeconds(2),
+        Duration.ofMillis(50), Duration.ofMillis(50), 1024, 1, null);
+
+    new NotificationDeliveryWorker(service, properties, List.of(webhook)).processDue();
+
+    verify(service).failed(8L, "Delivery failed (HttpTimeoutException)", 3, Duration.ofSeconds(2));
+    verify(service, never()).delivered(anyLong());
+  }
 }
