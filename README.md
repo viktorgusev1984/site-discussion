@@ -81,7 +81,27 @@ Blueprint fields are documented in the official
 3. If Render changes either service name because it is already taken, update both
    `VITE_API_URL` on the static site and `APP_CORS_ALLOWED_ORIGINS` on the API to
    the actual public URLs, then redeploy them.
-4. Open the static-site URL and sign in with the ready-made test account
+4. The Blueprint uses Gmail SMTP by default. Enable two-step verification for the
+   Google account used by the application, create an
+   [app password](https://support.google.com/accounts/answer/185833), and save the
+   complete Gmail address in `SMTP_USERNAME` and the 16-character app password in
+   `SMTP_PASSWORD` for the API service. The configured endpoint is `smtp.gmail.com`
+   with authentication and STARTTLS on port 587.
+
+   Gmail is only the ready-to-use default. To use another provider, override
+   `SMTP_HOST` (and `SMTP_PORT` when necessary) in the Render dashboard:
+
+   | Provider | `SMTP_HOST` | Port | Credentials |
+   | --- | --- | --- | --- |
+   | [Yandex Mail](https://yandex.com/support/yandex-360/customers/mail/ru/mail-clients/others.html) | `smtp.yandex.ru` | `587` | Full mailbox address and an app password |
+   | [SMTP2GO](https://support.smtp2go.com/hc/en-gb/articles/223087627) | `mail.smtp2go.com` | `587` | SMTP username and password from SMTP2GO |
+   | [Mailjet](https://documentation.mailjet.com/hc/en-us/articles/360043229473) | `in-v3.mailjet.com` | `587` | Mailjet API key and secret key |
+
+   A public relay without credentials is intentionally not used: it would allow
+   third parties to send spam. SMTP credentials belong to the server and are never
+   requested from users adding an email channel. The visible sender name remains
+   `open-ideas`, and the authenticated SMTP login is used as its address.
+5. Open the static-site URL and sign in with the ready-made test account
    (`demo` / `demo12345`). Moderation can be tested with the administrator account
    (`admin` / `admin12345`); both accounts are shown on the login page. The API health check is
    available at `/api/categories`, and Swagger UI is at `/swagger-ui.html` on the
