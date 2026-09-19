@@ -18,8 +18,14 @@ class NotificationSecurityTest {
   }
 
   @Test void rejectsLoopbackAndPrivateNetworks() {
+    assertThrows(IOException.class, () -> client().validate("https://localhost/hook"));
     assertThrows(IOException.class, () -> client().validate("https://127.0.0.1/hook"));
+    assertThrows(IOException.class, () -> client().validate("https://[::1]/hook"));
     assertThrows(IOException.class, () -> client().validate("https://10.0.0.1/hook"));
+    assertThrows(IOException.class, () -> client().validate("https://172.16.0.1/hook"));
+    assertThrows(IOException.class, () -> client().validate("https://192.168.1.1/hook"));
+    assertThrows(IOException.class, () -> client().validate("https://100.64.0.1/hook"));
+    assertThrows(IOException.class, () -> client().validate("https://169.254.1.1/hook"));
     assertThrows(IOException.class, () -> client().validate("https://169.254.169.254/latest/meta-data"));
     assertThrows(IOException.class, () -> client().validate("https://[fd00::1]/hook"));
   }
