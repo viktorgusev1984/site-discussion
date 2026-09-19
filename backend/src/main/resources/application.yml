@@ -13,12 +13,30 @@ spring:
     multipart:
       max-file-size: 8MB
       max-request-size: 32MB
+  mail:
+    host: ${SMTP_HOST:localhost}
+    port: ${SMTP_PORT:1025}
+    username: ${SMTP_USERNAME:}
+    password: ${SMTP_PASSWORD:}
+    properties:
+      mail.smtp.auth: ${SMTP_AUTH:false}
+      mail.smtp.starttls.enable: ${SMTP_STARTTLS:false}
+      mail.smtp.connectiontimeout: ${SMTP_CONNECTION_TIMEOUT_MS:3000}
+      mail.smtp.timeout: ${SMTP_READ_TIMEOUT_MS:5000}
+      mail.smtp.writetimeout: ${SMTP_WRITE_TIMEOUT_MS:5000}
 app:
   jwt:
     secret: ${JWT_SECRET:change-this-development-secret-at-least-32-characters}
     ttl: ${JWT_TTL:PT24H}
   notifications:
     encryption-key: ${NOTIFICATION_ENCRYPTION_KEY:}
+    worker-interval: ${NOTIFICATION_WORKER_INTERVAL:10s}
+    max-attempts: ${NOTIFICATION_MAX_ATTEMPTS:5}
+    initial-backoff: ${NOTIFICATION_INITIAL_BACKOFF:30s}
+    connect-timeout: ${NOTIFICATION_CONNECT_TIMEOUT:3s}
+    read-timeout: ${NOTIFICATION_READ_TIMEOUT:5s}
+    max-response-bytes: ${NOTIFICATION_MAX_RESPONSE_BYTES:65536}
+    max-redirects: ${NOTIFICATION_MAX_REDIRECTS:2}
 springdoc:
   swagger-ui:
     path: /swagger-ui.html
