@@ -116,7 +116,7 @@ that the requested session belongs to the JWT owner and replaces the application
 JWT with `QWEN_SERVER_TOKEN` only on the server. The daemon credential is never
 included in the frontend bundle or returned to the browser.
 
-## Free test deployment on Render
+## Render deployment
 
 [Render](https://render.com/docs) is a cloud application platform (PaaS): it builds
 the project from a Git repository, runs web services, publishes static sites, and
@@ -128,8 +128,11 @@ The repository includes a [Render Blueprint](https://render.com/docs/infrastruct
 Boot Docker service, the isolated Qwen Code service, and PostgreSQL. The API and
 Qwen service receive the same generated daemon token through a shared Render
 environment-variable group, and the API contacts Qwen over Render's private
-network. This is the simplest way to put the complete application online for a
-demo without changing its architecture. The available
+network. All services use free plans. The Qwen image is tuned for Render's
+512 MiB limit: the small HTTP daemon has a 96 MiB V8 heap cap and its redundant
+built-in Web UI is disabled, leaving memory for the separate ACP child. The
+application serves its own copy of the Web Shell, so `--no-web` does not remove
+the `/assistant` interface. The available
 Blueprint fields are documented in the official
 [Blueprint specification](https://render.com/docs/blueprint-spec).
 
