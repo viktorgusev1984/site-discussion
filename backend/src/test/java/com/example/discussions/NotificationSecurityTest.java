@@ -10,7 +10,7 @@ import org.junit.jupiter.api.Test;
 class NotificationSecurityTest {
   private SafeWebhookClient client() {
     return new SafeWebhookClient(new NotificationProperties("", Duration.ofSeconds(10), 3,
-        Duration.ofSeconds(1), Duration.ofSeconds(1), Duration.ofSeconds(1), 1024, 1));
+        Duration.ofSeconds(1), Duration.ofSeconds(1), Duration.ofSeconds(1), 1024, 1, null));
   }
 
   @Test void rejectsNonHttpsEndpoints() {

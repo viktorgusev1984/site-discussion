@@ -51,4 +51,11 @@ public class NotificationChannel {
 
   @Column(name = "last_successful_check_at")
   public Instant lastSuccessfulCheckAt;
+
+  @Column(name = "last_check_attempt_at")
+  public Instant lastCheckAttemptAt;
+
+  /** Safe, precomputed display value. It never contains a complete endpoint or credential. */
+  @Column(name = "connection_description", nullable = false, length = 255)
+  public String connectionDescription;
 }

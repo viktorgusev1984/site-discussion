@@ -16,7 +16,7 @@ class NotificationDeliveryWorkerTest {
     NotificationDelivery delivery = new NotificationDelivery(); delivery.id = 42L; delivery.channelType = NotificationChannelType.EMAIL;
     when(service.claimNext()).thenReturn(Optional.of(delivery), Optional.empty());
     var properties = new NotificationProperties("", Duration.ofSeconds(1), 3, Duration.ofSeconds(2),
-        Duration.ofSeconds(1), Duration.ofSeconds(1), 1024, 1);
+        Duration.ofSeconds(1), Duration.ofSeconds(1), 1024, 1, null);
 
     new NotificationDeliveryWorker(service, properties, List.of(email)).processDue();
 
@@ -32,7 +32,7 @@ class NotificationDeliveryWorkerTest {
     when(service.claimNext()).thenReturn(Optional.of(delivery), Optional.empty());
     doThrow(new IllegalStateException("https://secret.example/token/full-payload")).when(webhook).send(delivery);
     var properties = new NotificationProperties("", Duration.ofSeconds(1), 3, Duration.ofSeconds(2),
-        Duration.ofSeconds(1), Duration.ofSeconds(1), 1024, 1);
+        Duration.ofSeconds(1), Duration.ofSeconds(1), 1024, 1, null);
 
     new NotificationDeliveryWorker(service, properties, List.of(webhook)).processDue();
 

@@ -12,7 +12,8 @@ public record NotificationProperties(
     Duration connectTimeout,
     Duration readTimeout,
     Integer maxResponseBytes,
-    Integer maxRedirects) {
+    Integer maxRedirects,
+    Duration testInterval) {
   public Duration workerInterval() { return workerInterval == null ? Duration.ofSeconds(10) : workerInterval; }
   public int attempts() { return maxAttempts == null ? 5 : maxAttempts; }
   public Duration initialBackoff() { return initialBackoff == null ? Duration.ofSeconds(30) : initialBackoff; }
@@ -20,4 +21,5 @@ public record NotificationProperties(
   public Duration readTimeout() { return readTimeout == null ? Duration.ofSeconds(5) : readTimeout; }
   public int responseLimit() { return maxResponseBytes == null ? 65_536 : maxResponseBytes; }
   public int redirects() { return maxRedirects == null ? 2 : maxRedirects; }
+  public Duration testInterval() { return testInterval == null ? Duration.ofMinutes(1) : testInterval; }
 }

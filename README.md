@@ -48,6 +48,16 @@ Open the UI at <http://localhost:3000>, the API at <http://localhost:8080/api>, 
 | `JWT_TTL` | ISO-8601 token lifetime | `PT24H` |
 | `VITE_API_URL` | Frontend API base URL | `/api` |
 | `BACKEND_PORT`, `FRONTEND_PORT` | Published Compose ports | `8080`, `3000` |
+| `NOTIFICATION_ENCRYPTION_KEY` | Key used to encrypt webhook URLs and signing secrets (prefer a base64-encoded random 32-byte value) | required in Compose |
+| `NOTIFICATION_WORKER_INTERVAL` | Delay between delivery worker passes | `10s` |
+| `NOTIFICATION_MAX_ATTEMPTS` | Maximum delivery attempts | `5` |
+| `NOTIFICATION_INITIAL_BACKOFF` | Initial exponential retry delay | `30s` |
+| `NOTIFICATION_CONNECT_TIMEOUT`, `NOTIFICATION_READ_TIMEOUT` | Outbound webhook timeouts | `3s`, `5s` |
+| `NOTIFICATION_MAX_RESPONSE_BYTES` | Maximum webhook response body consumed | `65536` |
+| `NOTIFICATION_MAX_REDIRECTS` | Maximum validated webhook redirects | `2` |
+| `NOTIFICATION_TEST_INTERVAL` | Minimum interval between channel tests per channel | `1m` |
+| `SMTP_HOST`, `SMTP_PORT`, `SMTP_USERNAME`, `SMTP_PASSWORD` | SMTP connection used by e-mail channels | `localhost`, `1025`, empty, empty |
+| `SMTP_AUTH`, `SMTP_STARTTLS` | Enable SMTP authentication and STARTTLS | `false`, `false` |
 
 Do not commit `.env`; only `.env.example` is versioned.
 
@@ -106,6 +116,30 @@ comma-separated list of exact frontend origins (without trailing slashes).
 - `PUT /api/discussions/{id}/close|cancel`, `POST /api/discussions/{id}/actions/jira`
 - `PUT /api/users/{username}/role?role=MODERATOR` (administrator only)
 - `GET /api/categories`, `GET /api/users/{username}`
+
+### Personal notification settings
+
+All endpoints below require `Authorization: Bearer <token>` and always operate on the token owner;
+channel and rule IDs owned by another user are returned as not found. Public profile responses from
+`GET /api/users/{username}` contain no notification settings.
+
+- `GET|POST /api/me/notifications/channels` — list or create channels.
+- `PUT /api/me/notifications/channels/{id}` — replace editable channel settings. An empty `url` or
+  `secret` retains the stored credential.
+- `PATCH /api/me/notifications/channels/{id}/disable` — stop delivery through a channel.
+- `DELETE /api/me/notifications/channels/{id}` — delete a channel. Its rules and queued delivery
+  records are deleted by database foreign-key cascades.
+- `POST /api/me/notifications/channels/{id}/test` — send a test through the production sender.
+  Tests use the normal SSRF checks and timeouts and are limited by `NOTIFICATION_TEST_INTERVAL`.
+- `GET|POST /api/me/notifications/rules`, `PUT|DELETE /api/me/notifications/rules/{id}` — manage
+  subscription rules. `DISCUSSION` scope requires `discussionId`; `ALL_DISCUSSIONS` forbids it.
+
+Channel types are `EMAIL`, `MATTERMOST`, and `WEBHOOK`; rule triggers are `NEW_DISCUSSION`,
+`NEW_COMMENT`, `NEW_REPLY`, `FIRST_VOTE`, `NEW_REACTION`, `STATUS_CHANGED`,
+`JIRA_ACTION_CREATED`, and `MENTION`. Mattermost and webhook channels require an HTTPS `url`, and a
+generic webhook also requires `secret` for HMAC-SHA256 signing. URLs and secrets are encrypted at
+rest. Read and write responses expose only a connection description such as
+`hooks.example.com/…a1b2`; the original URL and secret are never returned.
 
 Accepted discussion sorts are `activity,desc`, `createdAt,desc`, and `voteCount,desc`. Search is case-insensitive across title and body. Mutation endpoints require `Authorization: Bearer <token>`. Authors can cancel their discussions; moderators can close or cancel them and attach Jira actions. Administrators have every moderator capability, can edit or delete any discussion, and exclusively grant or revoke the moderator role.
 

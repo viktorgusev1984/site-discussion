@@ -37,6 +37,7 @@ app:
     read-timeout: ${NOTIFICATION_READ_TIMEOUT:5s}
     max-response-bytes: ${NOTIFICATION_MAX_RESPONSE_BYTES:65536}
     max-redirects: ${NOTIFICATION_MAX_REDIRECTS:2}
+    test-interval: ${NOTIFICATION_TEST_INTERVAL:1m}
 springdoc:
   swagger-ui:
     path: /swagger-ui.html

@@ -3,10 +3,7 @@ package com.example.discussions.dto;
 import com.example.discussions.model.Category;
 import com.example.discussions.model.Discussion;
 import com.example.discussions.model.DiscussionAction;
-import com.example.discussions.model.NotificationChannel;
-import com.example.discussions.model.NotificationChannelType;
 import com.example.discussions.model.User;
-import com.fasterxml.jackson.databind.JsonNode;
 import java.time.Instant;
 import java.util.List;
 
@@ -37,21 +34,6 @@ public final class Responses {
   }
   public record Profile(Long id, String username, String displayName, String bio, String role,
       Instant createdAt, List<DiscussionView> discussions) {}
-
-  /** A channel-specific response which deliberately returns only a masked secret marker. */
-  public record NotificationChannelView(Long id, NotificationChannelType type, String name,
-      boolean active, JsonNode configuration, String secrets, Instant createdAt,
-      Instant lastSuccessfulCheckAt) {
-    private static final String MASKED_SECRET = "********";
-
-    public static NotificationChannelView of(NotificationChannel channel) {
-      return new NotificationChannelView(channel.id, channel.type, channel.name, channel.active,
-          channel.configuration,
-          channel.encryptedSecrets == null || channel.encryptedSecrets.length == 0
-              ? null : MASKED_SECRET,
-          channel.createdAt, channel.lastSuccessfulCheckAt);
-    }
-  }
 
   public static List<DiscussionActionView> actionViews(Discussion discussion) {
     return discussion.actions.stream().map(DiscussionActionView::of).toList();

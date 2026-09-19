@@ -15,9 +15,12 @@ public class WebhookNotificationSender implements NotificationSender {
   public WebhookNotificationSender(SafeWebhookClient client, ChannelSecrets secrets) { this.client = client; this.secrets = secrets; }
   @Override public NotificationChannelType channelType() { return NotificationChannelType.WEBHOOK; }
   @Override public void send(NotificationDelivery delivery) throws Exception {
-    String endpoint = delivery.channel.configuration.path("url").asText();
+    var credentials = secrets.decrypt(delivery.channel);
+    String endpoint = credentials.path("url").asText();
+    // Compatibility for channels created before endpoints were moved into encrypted_secrets.
+    if (endpoint.isBlank()) endpoint = delivery.channel.configuration.path("url").asText();
     String timestamp = Long.toString(Instant.now().getEpochSecond());
-    String secret = secrets.decrypt(delivery.channel).path("hmacSecret").asText();
+    String secret = credentials.path("hmacSecret").asText();
     if (secret.isBlank()) throw new IllegalStateException("Webhook signing secret is missing");
     Mac mac = Mac.getInstance("HmacSHA256");
     mac.init(new SecretKeySpec(secret.getBytes(StandardCharsets.UTF_8), "HmacSHA256"));
