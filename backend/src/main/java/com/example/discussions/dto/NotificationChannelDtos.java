@@ -15,7 +15,7 @@ public final class NotificationChannelDtos {
       @NotBlank @Size(max = 100) String name,
       @NotNull NotificationChannelType type,
       @Size(max = 2048)
-      @Pattern(regexp = "^https://[^\\s]+$", message = "URL должен быть абсолютным HTTPS URL")
+      @Pattern(regexp = "^(?:https://[^\\s]+)?$", message = "URL должен быть абсолютным HTTPS URL")
       String url,
       @Size(max = 512) String secret) {}
 

@@ -9,7 +9,7 @@ const TRIGGERS:NotificationTrigger[]=['NEW_DISCUSSION','NEW_COMMENT','NEW_REPLY'
 const TRIGGER_LABEL:Record<NotificationTrigger,string>={NEW_DISCUSSION:'Новое обсуждение',NEW_COMMENT:'Новый комментарий',NEW_REPLY:'Ответ на комментарий',FIRST_VOTE:'Первый голос',NEW_REACTION:'Новая реакция',STATUS_CHANGED:'Изменение статуса',JIRA_ACTION_CREATED:'Создание задачи Jira',MENTION:'Упоминание'};
 const emptyForm:ChannelInput={name:'',type:'EMAIL',url:'',secret:''};
 
-function message(error:unknown){if(axios.isAxiosError(error)){const data=error.response?.data as {message?:string;detail?:string}|undefined;return data?.message||data?.detail||'Сервер не смог выполнить запрос.'}return 'Не удалось выполнить запрос.'}
+function message(error:unknown){if(axios.isAxiosError(error)){const data=error.response?.data as {error?:string;message?:string;detail?:string}|undefined;return data?.error||data?.message||data?.detail||'Сервер не смог выполнить запрос.'}return 'Не удалось выполнить запрос.'}
 function date(value:string|null){return value?new Intl.DateTimeFormat('ru',{dateStyle:'medium',timeStyle:'short'}).format(new Date(value)):'Ещё не проверялось'}
 
 export default function NotificationSettingsPage(){

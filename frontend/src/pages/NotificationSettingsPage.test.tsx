@@ -44,6 +44,17 @@ describe('notification settings',()=>{
     await waitFor(()=>expect(screen.queryByLabelText(/Секрет для подписи/)).not.toBeInTheDocument());
   });
 
+  it('creates an email connection with empty optional credentials',async()=>{
+    const emailChannel={...channel,id:8,type:'EMAIL' as const,name:'Основная почта',connection:'…mo@example.com'};
+    vi.mocked(notificationsApi.createChannel).mockResolvedValue(emailChannel);
+    const user=userEvent.setup();render(<NotificationSettingsPage/>);
+    await screen.findByRole('heading',{name:'Deploy hook'});
+    await user.type(screen.getByLabelText('Пользовательское название'),'Основная почта');
+    await user.click(screen.getByRole('button',{name:'Добавить подключение'}));
+    await waitFor(()=>expect(notificationsApi.createChannel).toHaveBeenCalledWith({
+      name:'Основная почта',type:'EMAIL',url:'',secret:''}));
+  });
+
   it('tests a connection and enables a rule',async()=>{
     vi.mocked(notificationsApi.testChannel).mockResolvedValue({} as never);
     vi.mocked(notificationsApi.createRule).mockResolvedValue({id:8,trigger:'NEW_COMMENT',scope:'ALL_DISCUSSIONS',discussionId:null,channelId:7,active:true});
@@ -55,7 +66,7 @@ describe('notification settings',()=>{
   });
 
   it('shows an API error',async()=>{
-    vi.mocked(notificationsApi.channels).mockRejectedValue({isAxiosError:true,response:{data:{message:'Доступ запрещён'}}});
+    vi.mocked(notificationsApi.channels).mockRejectedValue({isAxiosError:true,response:{data:{error:'Доступ запрещён'}}});
     render(<NotificationSettingsPage/>);
     expect(await screen.findByRole('alert')).toHaveTextContent('Доступ запрещён');
   });
