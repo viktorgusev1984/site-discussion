@@ -1,3 +1,4 @@
 *
 !.dockerignore
 !Dockerfile
+!patch-acp-memory.mjs
