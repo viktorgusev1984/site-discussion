@@ -4,6 +4,7 @@ import com.example.discussions.exception.ApiException;
 import com.example.discussions.repository.AiChatSessionRepository;
 import com.example.discussions.service.CurrentUser;
 import jakarta.servlet.http.HttpServletRequest;
+import java.io.IOException;
 import java.io.InputStream;
 import java.net.URI;
 import java.net.http.HttpClient;
@@ -41,8 +42,11 @@ public class QwenAgentProxyController {
   }
 
   @RequestMapping("/api/agent/**")
-  public ResponseEntity<StreamingResponseBody> proxy(HttpServletRequest incoming) throws Exception {
+  public ResponseEntity<StreamingResponseBody> proxy(HttpServletRequest incoming) {
     var user = current.required();
+    if (daemonToken.isBlank()) {
+      throw new ApiException(HttpStatus.SERVICE_UNAVAILABLE, "AI-помощник не настроен");
+    }
     String path = incoming.getRequestURI().substring(PREFIX.length());
     if (path.isBlank()) path = "/capabilities";
     var matcher = SESSION_PATH.matcher(path);
@@ -53,7 +57,12 @@ public class QwenAgentProxyController {
 
     String query = incoming.getQueryString();
     URI target = daemon.resolve(path + (query == null ? "" : "?" + query));
-    byte[] body = incoming.getInputStream().readAllBytes();
+    byte[] body;
+    try {
+      body = incoming.getInputStream().readAllBytes();
+    } catch (IOException e) {
+      throw ApiException.badRequest("Не удалось прочитать запрос");
+    }
     var builder = HttpRequest.newBuilder(target).timeout(Duration.ofMinutes(3))
         .header("Authorization", "Bearer " + daemonToken)
         .method(incoming.getMethod(), body.length == 0
@@ -61,7 +70,15 @@ public class QwenAgentProxyController {
     incoming.getHeaderNames().asIterator().forEachRemaining(name -> {
       if (FORWARDED_REQUEST_HEADERS.contains(name.toLowerCase())) builder.header(name, incoming.getHeader(name));
     });
-    HttpResponse<InputStream> response = http.send(builder.build(), HttpResponse.BodyHandlers.ofInputStream());
+    HttpResponse<InputStream> response;
+    try {
+      response = http.send(builder.build(), HttpResponse.BodyHandlers.ofInputStream());
+    } catch (InterruptedException e) {
+      Thread.currentThread().interrupt();
+      throw new ApiException(HttpStatus.SERVICE_UNAVAILABLE, "Запрос к AI-помощнику прерван");
+    } catch (IOException e) {
+      throw new ApiException(HttpStatus.BAD_GATEWAY, "AI-помощник временно недоступен");
+    }
     var headers = new HttpHeaders();
     response.headers().firstValue("content-type").ifPresent(value -> headers.set("Content-Type", value));
     response.headers().firstValue("x-qwen-event-epoch").ifPresent(value -> headers.set("X-Qwen-Event-Epoch", value));
