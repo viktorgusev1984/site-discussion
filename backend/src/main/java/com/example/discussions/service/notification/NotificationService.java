@@ -2,8 +2,6 @@ package com.example.discussions.service.notification;
 
 import com.example.discussions.model.*;
 import com.example.discussions.repository.*;
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import java.time.Instant;
 import java.util.*;
 import org.springframework.stereotype.Service;
@@ -13,31 +11,45 @@ import org.springframework.transaction.annotation.*;
 public class NotificationService {
   private final NotificationRuleRepository rules;
   private final NotificationDeliveryRepository deliveries;
-  private final ObjectMapper json;
   private final SafeWebhookClient webhookClient;
+  private final DiscussionAccessService access;
+  private final NotificationTemplateRenderer renderer;
 
   public NotificationService(NotificationRuleRepository rules, NotificationDeliveryRepository deliveries,
-      ObjectMapper json, SafeWebhookClient webhookClient) {
-    this.rules = rules; this.deliveries = deliveries; this.json = json; this.webhookClient = webhookClient;
+      SafeWebhookClient webhookClient, DiscussionAccessService access, NotificationTemplateRenderer renderer) {
+    this.rules = rules; this.deliveries = deliveries; this.webhookClient = webhookClient;
+    this.access = access; this.renderer = renderer;
   }
 
   /** Must be called inside the transaction that mutates the discussion. */
   @Transactional(propagation = Propagation.MANDATORY)
-  public void enqueue(NotificationTrigger trigger, Discussion discussion, Object payload, String eventId) {
-    String serialized;
-    try { serialized = json.writeValueAsString(payload); }
-    catch (JsonProcessingException e) { throw new IllegalArgumentException("Notification payload cannot be serialized", e); }
-    for (NotificationRule rule : rules.findMatching(trigger, discussion.id)) {
+  public void publish(NotificationEvent event, Discussion discussion) {
+    if (!event.discussionId().equals(discussion.id)) throw new IllegalArgumentException("Event discussion mismatch");
+    if (event.actorId().equals(event.recipientId())) return;
+    for (NotificationRule rule : rules.findActiveForDiscussion(event.recipientId(), event.trigger(), discussion.id)) {
+      // Deliberately check at the last possible point, after rule selection and before outbox creation.
+      if (!access.canView(rule.user, discussion)) continue;
       NotificationDelivery delivery = new NotificationDelivery();
-      delivery.eventId = eventId;
-      delivery.eventType = trigger.name();
+      delivery.eventId = event.id();
+      delivery.eventType = event.trigger().name();
       delivery.recipient = rule.user;
       delivery.channel = rule.channel;
       delivery.channelType = rule.channel.type;
-      delivery.payload = serialized;
-      delivery.idempotencyKey = eventId + ":" + rule.user.id + ":" + rule.channel.id;
+      delivery.payload = renderer.render(event, rule.channel.type);
+      delivery.idempotencyKey = event.id() + ":" + rule.user.id + ":" + rule.channel.id;
       if (!deliveries.existsByIdempotencyKey(delivery.idempotencyKey)) deliveries.save(delivery);
     }
+  }
+
+  /** Fan-out is retained for the global NEW_DISCUSSION subscription. */
+  @Transactional(propagation = Propagation.MANDATORY)
+  public void publishNewDiscussion(User actor, Discussion discussion, Instant occurredAt) {
+    rules.findMatching(NotificationTrigger.NEW_DISCUSSION, discussion.id).stream()
+        .map(rule -> rule.user).filter(user -> !user.id.equals(actor.id)).distinct()
+        .forEach(recipient -> publish(new NotificationEvent(
+            "discussion-created:" + discussion.id, NotificationTrigger.NEW_DISCUSSION,
+            actor.id, recipient.id, discussion.id, null, occurredAt,
+            new NotificationEvent.TemplateData(discussion.title, actor.displayName, null, null, null)), discussion));
   }
 
   public void validateChannelConfiguration(NotificationChannel channel) {
