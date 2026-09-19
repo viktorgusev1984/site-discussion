@@ -41,13 +41,14 @@ public class SecurityConfig {
                 .cors(cors -> cors.configurationSource(request -> {
                     var configuration = new CorsConfiguration();
                     configuration.setAllowedOrigins(allowedOrigins);
-                    configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
+                    configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
                     configuration.setAllowedHeaders(List.of("*"));
                     return configuration;
                 }))
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(authorize -> authorize
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
+                        .requestMatchers("/api/me/notifications/**").authenticated()
                         .requestMatchers(HttpMethod.GET,
                                 "/api/discussions/**",
                                 "/api/categories",
