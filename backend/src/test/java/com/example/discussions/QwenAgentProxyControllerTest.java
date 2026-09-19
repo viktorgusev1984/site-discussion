@@ -11,6 +11,7 @@ import com.example.discussions.repository.AiChatSessionRepository;
 import com.example.discussions.service.CurrentUser;
 import java.net.URI;
 import org.junit.jupiter.api.Test;
+import org.springframework.http.HttpStatus;
 import org.springframework.mock.web.MockHttpServletRequest;
 
 class QwenAgentProxyControllerTest {
@@ -27,5 +28,33 @@ class QwenAgentProxyControllerTest {
     var controller = new QwenAgentProxyController(sessions, current, URI.create("http://127.0.0.1:1"), "secret");
     assertThatThrownBy(() -> controller.proxy(request)).isInstanceOf(ApiException.class)
         .hasMessage("Сессия AI-помощника не найдена");
+  }
+
+  @Test void translatesDaemonConnectionFailureIntoAStableApiError() {
+    var sessions = mock(AiChatSessionRepository.class);
+    var current = mock(CurrentUser.class);
+    when(current.required()).thenReturn(new User());
+    var request = new MockHttpServletRequest("GET", "/api/agent/capabilities");
+    request.setRequestURI("/api/agent/capabilities");
+
+    var controller = new QwenAgentProxyController(sessions, current, URI.create("http://127.0.0.1:1"), "secret");
+    assertThatThrownBy(() -> controller.proxy(request))
+        .isInstanceOfSatisfying(ApiException.class, error ->
+            org.assertj.core.api.Assertions.assertThat(error.status).isEqualTo(HttpStatus.BAD_GATEWAY))
+        .hasMessage("AI-помощник временно недоступен");
+  }
+
+  @Test void reportsAnUnconfiguredDaemonWithoutOpeningAConnection() {
+    var sessions = mock(AiChatSessionRepository.class);
+    var current = mock(CurrentUser.class);
+    when(current.required()).thenReturn(new User());
+    var request = new MockHttpServletRequest("GET", "/api/agent/capabilities");
+    request.setRequestURI("/api/agent/capabilities");
+
+    var controller = new QwenAgentProxyController(sessions, current, URI.create("http://127.0.0.1:1"), " ");
+    assertThatThrownBy(() -> controller.proxy(request))
+        .isInstanceOfSatisfying(ApiException.class, error ->
+            org.assertj.core.api.Assertions.assertThat(error.status).isEqualTo(HttpStatus.SERVICE_UNAVAILABLE))
+        .hasMessage("AI-помощник не настроен");
   }
 }

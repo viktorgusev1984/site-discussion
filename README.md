@@ -124,9 +124,12 @@ can provision managed PostgreSQL databases. Unlike a VPS, it does not require
 manually installing Java, Nginx, PostgreSQL, or configuring HTTPS on a server.
 
 The repository includes a [Render Blueprint](https://render.com/docs/infrastructure-as-code)
-(`render.yaml`) that provisions three resources: the React static site, the Spring
-Boot Docker service, and PostgreSQL. This is the simplest way to put the complete
-application online for a demo without changing its architecture. The available
+(`render.yaml`) that provisions four resources: the React static site, the Spring
+Boot Docker service, the isolated Qwen Code service, and PostgreSQL. The API and
+Qwen service receive the same generated daemon token through a shared Render
+environment-variable group, and the API contacts Qwen over Render's private
+network. This is the simplest way to put the complete application online for a
+demo without changing its architecture. The available
 Blueprint fields are documented in the official
 [Blueprint specification](https://render.com/docs/blueprint-spec).
 
@@ -135,8 +138,13 @@ Blueprint fields are documented in the official
    apply `render.yaml`.
 3. If Render changes either service name because it is already taken, update both
    `VITE_API_URL` on the static site and `APP_CORS_ALLOWED_ORIGINS` on the API to
-   the actual public URLs, then redeploy them.
-4. The Blueprint uses Gmail SMTP by default. Enable two-step verification for the
+   the actual public URLs. Also update `QWEN_AGENT_INTERNAL_URL` on the API when
+   the `open-ideas-qwen` service name changes, then redeploy the services.
+4. Set `OPENAI_API_KEY` on the `open-ideas-qwen` service to the provider key used
+   by Qwen Code. The Blueprint configures the DashScope-compatible endpoint and
+   `qwen3-coder-plus` by default; override `OPENAI_BASE_URL` or `OPENAI_MODEL` on
+   that service when using a different compatible provider.
+5. The Blueprint uses Gmail SMTP by default. Enable two-step verification for the
    Google account used by the application, create an
    [app password](https://support.google.com/accounts/answer/185833), and save the
    complete Gmail address in `SMTP_USERNAME` and the 16-character app password in
@@ -156,7 +164,7 @@ Blueprint fields are documented in the official
    third parties to send spam. SMTP credentials belong to the server and are never
    requested from users adding an email channel. The visible sender name remains
    `open-ideas`, and the authenticated SMTP login is used as its address.
-5. Open the static-site URL and sign in with the ready-made test account
+6. Open the static-site URL and sign in with the ready-made test account
    (`demo` / `demo12345`). Moderation can be tested with the administrator account
    (`admin` / `admin12345`); both accounts are shown on the login page. The API health check is
    available at `/api/categories`, and Swagger UI is at `/swagger-ui.html` on the

@@ -52,6 +52,25 @@ services:
         value: "true"
       - key: APP_CORS_ALLOWED_ORIGINS
         value: https://open-ideas.onrender.com
+      - key: QWEN_AGENT_INTERNAL_URL
+        value: http://open-ideas-qwen:4170
+      - fromGroup: open-ideas-qwen-auth
+
+  - type: web
+    name: open-ideas-qwen
+    runtime: docker
+    rootDir: qwen-agent
+    plan: free
+    envVars:
+      - key: PORT
+        value: "4170"
+      - key: OPENAI_API_KEY
+        sync: false
+      - key: OPENAI_BASE_URL
+        value: https://dashscope-intl.aliyuncs.com/compatible-mode/v1
+      - key: OPENAI_MODEL
+        value: qwen3-coder-plus
+      - fromGroup: open-ideas-qwen-auth
 
   - type: web
     name: open-ideas
@@ -72,3 +91,9 @@ databases:
     plan: free
     databaseName: discussions
     user: discussions
+
+envVarGroups:
+  - name: open-ideas-qwen-auth
+    envVars:
+      - key: QWEN_SERVER_TOKEN
+        generateValue: true
