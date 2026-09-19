@@ -8,6 +8,9 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.repository.query.Param;
 
 public interface NotificationRuleRepository extends JpaRepository<NotificationRule, Long> {
+  @Query("select r from NotificationRule r join fetch r.channel where r.active = true and r.channel.active = true and r.trigger = :trigger and (r.discussion is null or r.discussion.id = :discussionId)")
+  List<NotificationRule> findMatching(@Param("trigger") NotificationTrigger trigger, @Param("discussionId") Long discussionId);
+
   List<NotificationRule> findByUserIdAndTriggerAndActiveTrue(
       Long userId, NotificationTrigger trigger);
 

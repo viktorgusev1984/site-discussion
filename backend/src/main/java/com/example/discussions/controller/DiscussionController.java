@@ -7,6 +7,7 @@ import com.example.discussions.exception.ApiException;
 import com.example.discussions.model.*;
 import com.example.discussions.repository.*;
 import com.example.discussions.service.CurrentUser;
+import com.example.discussions.service.notification.NotificationService;
 import jakarta.validation.Valid;
 import java.time.Instant;
 import java.util.*;
@@ -27,27 +28,29 @@ public class DiscussionController {
   private final ReactionRepository reactions;
   private final DiscussionActionRepository actions;
   private final CurrentUser current;
+  private final NotificationService notifications;
 
   public DiscussionController(DiscussionRepository d, CategoryRepository c, CommentRepository comments,
-      VoteRepository v, CommentVoteRepository commentVotes, ReactionRepository reactions, DiscussionActionRepository actions, CurrentUser current) {
+      VoteRepository v, CommentVoteRepository commentVotes, ReactionRepository reactions, DiscussionActionRepository actions, CurrentUser current,
+      NotificationService notifications) {
     this.discussions=d; this.categories=c; this.comments=comments; this.votes=v;
-    this.commentVotes=commentVotes; this.reactions=reactions; this.actions=actions; this.current=current;
+    this.commentVotes=commentVotes; this.reactions=reactions; this.actions=actions; this.current=current; this.notifications=notifications;
   }
   @GetMapping("/categories") public List<Category> categories(){return categories.findAll();}
   @GetMapping("/discussions") public Page<DiscussionView> list(@RequestParam(required=false)String q,@RequestParam(required=false)String category,@RequestParam(required=false)Discussion.Status status,@RequestParam(defaultValue="activity,desc")String sort,@RequestParam(defaultValue="0")int page,@RequestParam(defaultValue="20")int size){String key=sort.startsWith("vote")?"votes":sort.startsWith("created")?"created":"activity";return discussions.search(blank(q),blank(category),status,key,PageRequest.of(page,Math.min(size,100))).map(this::view);}
   @GetMapping("/discussions/{id}") public DiscussionView get(@PathVariable Long id){return view(find(id));}
-  @PostMapping("/discussions") @ResponseStatus(HttpStatus.CREATED) public DiscussionView create(@Valid @RequestBody DiscussionInput in){var d=new Discussion();d.author=current.required();apply(d,in);return view(discussions.save(d));}
+  @PostMapping("/discussions") @ResponseStatus(HttpStatus.CREATED) public DiscussionView create(@Valid @RequestBody DiscussionInput in){var d=new Discussion();d.author=current.required();apply(d,in);discussions.saveAndFlush(d);notifications.enqueue(NotificationTrigger.NEW_DISCUSSION,d,eventPayload(d,null),"discussion-created:"+d.id);return view(d);}
   @PutMapping("/discussions/{id}") public DiscussionView update(@PathVariable Long id,@Valid @RequestBody DiscussionInput in){var d=find(id);current.ownerOrAdmin(d.author);apply(d,in);return view(discussions.save(d));}
   @DeleteMapping("/discussions/{id}") @ResponseStatus(HttpStatus.NO_CONTENT) public void delete(@PathVariable Long id){var d=find(id);current.ownerOrAdmin(d.author);discussions.delete(d);}
-  @PostMapping("/discussions/{id}/comments") @ResponseStatus(HttpStatus.CREATED) public Comment comment(@PathVariable Long id,@Valid @RequestBody CommentInput in){var c=new Comment();c.discussion=find(id);c.author=current.required();c.body=in.body();if(in.parentId()!=null)c.parent=comments.findById(in.parentId()).filter(x->x.discussion.id.equals(id)).orElseThrow(()->ApiException.notFound("Родительский комментарий не найден"));c.discussion.updatedAt=Instant.now();return comments.save(c);}
+  @PostMapping("/discussions/{id}/comments") @ResponseStatus(HttpStatus.CREATED) public Comment comment(@PathVariable Long id,@Valid @RequestBody CommentInput in){var c=new Comment();c.discussion=find(id);c.author=current.required();c.body=in.body();if(in.parentId()!=null)c.parent=comments.findById(in.parentId()).filter(x->x.discussion.id.equals(id)).orElseThrow(()->ApiException.notFound("Родительский комментарий не найден"));c.discussion.updatedAt=Instant.now();comments.saveAndFlush(c);notifications.enqueue(NotificationTrigger.NEW_COMMENT,c.discussion,eventPayload(c.discussion,c),"comment-created:"+c.id);return c;}
   @PutMapping("/discussions/{id}/vote") public DiscussionView vote(@PathVariable Long id){var d=find(id);var u=current.required();if(votes.findByUserAndDiscussion(u,d).isEmpty()){var v=new Vote();v.user=u;v.discussion=d;votes.saveAndFlush(v);}return view(d);}
   @DeleteMapping("/discussions/{id}/vote") public DiscussionView unvote(@PathVariable Long id){var d=find(id);votes.findByUserAndDiscussion(current.required(),d).ifPresent(votes::delete);votes.flush();return view(d);}
   @PutMapping("/comments/{id}/vote") public CommentView voteComment(@PathVariable Long id){var c=findComment(id);var u=current.required();if(commentVotes.findByUserAndComment(u,c).isEmpty()){var v=new CommentVote();v.user=u;v.comment=c;commentVotes.saveAndFlush(v);}return commentView(c);}
   @DeleteMapping("/comments/{id}/vote") public CommentView unvoteComment(@PathVariable Long id){var c=findComment(id);commentVotes.findByUserAndComment(current.required(),c).ifPresent(commentVotes::delete);commentVotes.flush();return commentView(c);}
   @PutMapping("/discussions/{id}/reactions/{emoji}") public DiscussionView reactDiscussion(@PathVariable Long id,@PathVariable String emoji){var d=find(id);validateEmoji(emoji);var u=current.required();if(reactions.findByUserAndDiscussionAndEmoji(u,d,emoji).isEmpty()){var r=new Reaction();r.user=u;r.discussion=d;r.emoji=emoji;reactions.saveAndFlush(r);}return view(d);}
   @DeleteMapping("/discussions/{id}/reactions/{emoji}") public DiscussionView unreactDiscussion(@PathVariable Long id,@PathVariable String emoji){var d=find(id);reactions.findByUserAndDiscussionAndEmoji(current.required(),d,emoji).ifPresent(reactions::delete);return view(d);}
-  @PutMapping("/discussions/{id}/close") public DiscussionView close(@PathVariable Long id){var d=find(id);current.moderator();d.status=Discussion.Status.CLOSED;return view(discussions.save(d));}
-  @PutMapping("/discussions/{id}/cancel") public DiscussionView cancel(@PathVariable Long id){var d=find(id);current.ownerOrModerator(d.author);d.status=Discussion.Status.CANCELLED;return view(discussions.save(d));}
+  @PutMapping("/discussions/{id}/close") public DiscussionView close(@PathVariable Long id){var d=find(id);current.moderator();d.status=Discussion.Status.CLOSED;discussions.save(d);notifications.enqueue(NotificationTrigger.STATUS_CHANGED,d,eventPayload(d,null),"discussion-status:"+d.id+":"+d.status);return view(d);}
+  @PutMapping("/discussions/{id}/cancel") public DiscussionView cancel(@PathVariable Long id){var d=find(id);current.ownerOrModerator(d.author);d.status=Discussion.Status.CANCELLED;discussions.save(d);notifications.enqueue(NotificationTrigger.STATUS_CHANGED,d,eventPayload(d,null),"discussion-status:"+d.id+":"+d.status);return view(d);}
   @PostMapping("/discussions/{id}/actions/jira") @ResponseStatus(HttpStatus.CREATED) public DiscussionView addJira(@PathVariable Long id,@Valid @RequestBody JiraActionInput in){var d=find(id);var actor=current.moderator();var action=new DiscussionAction();action.discussion=d;action.actor=actor;action.type=DiscussionAction.Type.JIRA;action.label=in.key();action.url=in.url();actions.save(action);d.actions.add(action);return view(d);}
   @PutMapping("/comments/{id}/reactions/{emoji}") public CommentView reactComment(@PathVariable Long id,@PathVariable String emoji){var c=findComment(id);validateEmoji(emoji);var u=current.required();if(reactions.findByUserAndCommentAndEmoji(u,c,emoji).isEmpty()){var r=new Reaction();r.user=u;r.comment=c;r.emoji=emoji;reactions.saveAndFlush(r);}return commentView(c);}
   @DeleteMapping("/comments/{id}/reactions/{emoji}") public CommentView unreactComment(@PathVariable Long id,@PathVariable String emoji){var c=findComment(id);reactions.findByUserAndCommentAndEmoji(current.required(),c,emoji).ifPresent(reactions::delete);return commentView(c);}
@@ -60,4 +63,5 @@ public class DiscussionController {
   private List<ReactionView> reactionViews(List<Reaction> items){var me=current.optional();return items.stream().collect(Collectors.groupingBy(r->r.emoji,LinkedHashMap::new,Collectors.toList())).entrySet().stream().map(e->new ReactionView(e.getKey(),e.getValue().size(),me.map(u->e.getValue().stream().anyMatch(r->r.user.id.equals(u.id))).orElse(false))).toList();}
   private void validateEmoji(String emoji){if(!ALLOWED_EMOJIS.contains(emoji))throw ApiException.badRequest("Недопустимая реакция");}
   private String blank(String s){return s==null||s.isBlank()?null:s;}
+  private Map<String,Object> eventPayload(Discussion d, Comment c){var payload=new LinkedHashMap<String,Object>();payload.put("schemaVersion",1);payload.put("discussionId",d.id);payload.put("title",d.title);payload.put("status",d.status.name());payload.put("occurredAt",Instant.now().toString());if(c!=null){payload.put("commentId",c.id);payload.put("commentAuthor",c.author.username);}return payload;}
 }
