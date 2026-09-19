@@ -19,6 +19,7 @@ services:
       DATABASE_PASSWORD: ${POSTGRES_PASSWORD}
       JWT_SECRET: ${JWT_SECRET:?Set JWT_SECRET in .env}
       JWT_TTL: ${JWT_TTL:-PT24H}
+      NOTIFICATION_ENCRYPTION_KEY: ${NOTIFICATION_ENCRYPTION_KEY:?Set NOTIFICATION_ENCRYPTION_KEY in .env}
     depends_on:
       postgres: {condition: service_healthy}
     ports: ["${BACKEND_PORT:-8080}:8080"]
