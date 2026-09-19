@@ -17,6 +17,8 @@ app:
   jwt:
     secret: ${JWT_SECRET:change-this-development-secret-at-least-32-characters}
     ttl: ${JWT_TTL:PT24H}
+  notifications:
+    encryption-key: ${NOTIFICATION_ENCRYPTION_KEY:}
 springdoc:
   swagger-ui:
     path: /swagger-ui.html
