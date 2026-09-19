@@ -64,6 +64,8 @@ services:
     envVars:
       - key: PORT
         value: "4170"
+      - key: QWEN_ACP_HEAP_MB
+        value: "160"
       - key: OPENAI_API_KEY
         sync: false
       - key: OPENAI_BASE_URL
