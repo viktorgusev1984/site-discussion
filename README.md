@@ -133,15 +133,19 @@ the image caps the HTTP daemon heap at 96 MiB and patches the pinned Qwen 0.24.1
 ACP launcher to honor `QWEN_ACP_HEAP_MB`, set to 160 MiB by default. The built-in
 Web UI is disabled and the live journal is capped at 1 MiB to remove additional
 memory pressure. The application serves its own copy of the Web Shell, so
-`--no-web` does not remove the `/assistant` interface.
+`--no-web` does not remove the `/assistant` interface. The ACP initialization
+deadline is raised from 10 to 60 seconds because loading the child process can
+take more than 10 seconds while a free instance is CPU-throttled.
 
 Qwen still prints a warning that its derived *daemon memory budget* is below
 1 GiB. In 0.24.1 that budget controls adaptive live-journal growth and does not
-size the ACP child; the explicit journal cap disables that growth. A `SIGKILL`
-immediately after preheat is the container OOM-killing the ACP child, which is
-why the child needs the separate heap cap. This is a POC compromise: large
-conversations or tool results can still exhaust 512 MiB. Increase the Render
-plan and `QWEN_ACP_HEAP_MB` before production use. The available Blueprint
+size the ACP child; the explicit journal cap disables that growth. When an ACP
+initialize timeout is reached, the daemon deliberately terminates the child
+with `SIGKILL`; that signal alone therefore does not prove that Render's OOM
+killer acted. The separate heap cap still protects the whole process tree from
+the 512 MiB container limit. This is a POC compromise: large conversations or
+tool results can still exhaust 512 MiB. Increase the Render plan and
+`QWEN_ACP_HEAP_MB` before production use. The available Blueprint
 fields are documented in the official
 [Blueprint specification](https://render.com/docs/blueprint-spec).
 

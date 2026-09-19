@@ -23,4 +23,8 @@ HEALTHCHECK --interval=15s --timeout=5s --start-period=30s --retries=5 \
 # always gives the child half of container memory; the build-time patch above
 # makes that independently configurable through QWEN_ACP_HEAP_MB.
 ENV QWEN_ACP_HEAP_MB=160
-CMD ["node", "--max-old-space-size=96", "/usr/local/lib/node_modules/@qwen-code/qwen-code/cli-entry.js", "serve", "--hostname", "0.0.0.0", "--port", "4170", "--workspace", "/workspace", "--require-auth", "--rate-limit", "--no-web", "--max-journal-bytes", "1048576", "--prompt-deadline-ms", "600000", "--writer-idle-timeout-ms", "120000"]
+# The default ACP initialize deadline is only 10 seconds. On a throttled free
+# instance the child can need longer than that just to load the CLI bundle; the
+# daemon otherwise kills the healthy-but-slow child and repeats the same failure
+# for the first real session.
+CMD ["node", "--max-old-space-size=96", "/usr/local/lib/node_modules/@qwen-code/qwen-code/cli-entry.js", "serve", "--hostname", "0.0.0.0", "--port", "4170", "--workspace", "/workspace", "--require-auth", "--rate-limit", "--no-web", "--max-journal-bytes", "1048576", "--initialize-timeout-ms", "60000", "--prompt-deadline-ms", "600000", "--writer-idle-timeout-ms", "120000"]
