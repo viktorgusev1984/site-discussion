@@ -8,11 +8,14 @@ A full-stack product-feedback community inspired by GitHub Discussions. Users ca
 Browser → React 18 / TypeScript / Vite → REST / JWT → Spring Boot 3 / JPA
                                                         ↓
                                               PostgreSQL 17 / Flyway
+
+Administrators → Qwen Code Web UI → HTTP + SSE → isolated `qwen serve` agent
 ```
 
 - **`frontend/`** — responsive single-page app with React Router, Axios, Markdown preview, reusable discussion, voting, category, form, and threaded-comment components.
 - **`backend/`** — stateless Spring Web API. Spring Security verifies signed JWTs; Bean Validation protects request boundaries; author, moderator, and administrator checks protect mutations.
 - **PostgreSQL** — relational source of truth. The vote table has a database-level unique `(user_id, discussion_id)` constraint, so concurrent duplicate votes cannot persist.
+- **`qwen-agent/`** — a separate Qwen Code daemon with its built-in Web UI and agent loop. It has its own persistent workspace and is not embedded into the Spring process.
 - **Flyway** owns schema evolution. Hibernate runs in validation-only mode.
 
 ## Requirements
@@ -28,6 +31,11 @@ docker compose up --build
 ```
 
 Open the UI at <http://localhost:3000>, the API at <http://localhost:8080/api>, and Swagger UI at <http://localhost:8080/swagger-ui.html>. The frontend Nginx server proxies `/api` to the backend.
+
+The Qwen Code Web UI is available at <http://localhost:4170>. Administrators can
+also open it from the account menu. Enter `QWEN_SERVER_TOKEN` when the Web UI
+asks for the daemon token. The token grants access to an agent capable of
+executing tools and must not be shared with ordinary application users.
 
 ## Local development
 
@@ -58,8 +66,55 @@ Open the UI at <http://localhost:3000>, the API at <http://localhost:8080/api>, 
 | `NOTIFICATION_TEST_INTERVAL` | Minimum interval between channel tests per channel | `1m` |
 | `SMTP_HOST`, `SMTP_PORT`, `SMTP_USERNAME`, `SMTP_PASSWORD` | SMTP connection used by e-mail channels | `localhost`, `1025`, empty, empty |
 | `SMTP_AUTH`, `SMTP_STARTTLS` | Enable SMTP authentication and STARTTLS | `false`, `false` |
+| `QWEN_API_KEY` | Provider credential used only by the isolated Qwen Code container | required in Compose |
+| `QWEN_BASE_URL`, `QWEN_MODEL` | OpenAI-compatible Qwen endpoint and model | DashScope / `qwen3-coder-plus` |
+| `QWEN_SERVER_TOKEN` | Bearer token protecting the Qwen Code daemon and Web UI | required in Compose |
+| `QWEN_AGENT_PORT` | Published Qwen Code Web UI port | `4170` |
+| `VITE_QWEN_AGENT_URL` | URL opened by the administrator menu item; omit it to hide the item | `http://localhost:4170` |
 
 Do not commit `.env`; only `.env.example` is versioned.
+
+## Qwen Code agent
+
+Qwen Code runs as a sidecar instead of a library inside Spring Boot. This keeps
+the application's request lifecycle separate from the agent loop and reuses the
+official Web UI supplied by `qwen serve`. HTTP/SSE sessions, tool approvals and
+conversation rendering are consequently owned by Qwen Code rather than
+reimplemented in this repository.
+
+The container receives two named volumes: `qwen_agent_home` for daemon state and
+`qwen_agent_workspace` for files created by the agent. It deliberately does not
+mount the application source, Docker socket, database volume, or backend secrets.
+To let an operator work on a repository, copy or clone it into the dedicated
+agent workspace and review tool approval prompts in the Qwen UI. Do not mount a
+production host filesystem into the agent container.
+
+`qwen serve` is still described upstream as experimental and local/small-team
+oriented. For an internet deployment, put it behind TLS and an additional access
+control layer, keep `QWEN_SERVER_TOKEN` enabled, and restrict network access.
+The admin-only frontend link is a discoverability control, not an authorization
+boundary; the daemon token remains the actual credential.
+
+The application backend also uses this daemon as an agent-loop adapter for
+authenticated assistant functions. Authors can improve a draft before saving;
+discussion participants can request an on-demand summary or place an AI reply
+draft into the normal editable comment field. Nothing produced by the agent is
+published automatically. Spring creates an isolated thread session, submits a
+constrained prompt, and polls the daemon's turn result while Qwen Code owns the
+model and tool loop. The corresponding API routes are:
+
+- `POST /api/ai/drafts/improve`
+- `POST /api/ai/discussions/{id}/summary`
+- `POST /api/ai/discussions/{id}/reply-draft`
+
+Authenticated users also have a persistent multi-turn conversation at
+`/assistant`. The page embeds the official `@qwen-code/web-shell` React template,
+which in turn uses `@qwen-code/sdk` for daemon sessions, resumable SSE and the
+chat transcript. Each application user is assigned a Qwen thread session in
+`ai_chat_sessions`. Browser requests go through `/api/agent`: the bridge checks
+that the requested session belongs to the JWT owner and replaces the application
+JWT with `QWEN_SERVER_TOKEN` only on the server. The daemon credential is never
+included in the frontend bundle or returned to the browser.
 
 ## Free test deployment on Render
 

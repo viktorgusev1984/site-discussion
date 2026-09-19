@@ -34,12 +34,32 @@ services:
       SMTP_PASSWORD: ${SMTP_PASSWORD:-}
       SMTP_AUTH: ${SMTP_AUTH:-false}
       SMTP_STARTTLS: ${SMTP_STARTTLS:-false}
+      QWEN_AGENT_INTERNAL_URL: http://qwen-agent:4170
+      QWEN_SERVER_TOKEN: ${QWEN_SERVER_TOKEN}
     depends_on:
       postgres: {condition: service_healthy}
+      qwen-agent: {condition: service_healthy}
     ports: ["${BACKEND_PORT:-8080}:8080"]
+  qwen-agent:
+    build: ./qwen-agent
+    environment:
+      QWEN_SERVER_TOKEN: ${QWEN_SERVER_TOKEN:?Set QWEN_SERVER_TOKEN in .env}
+      OPENAI_API_KEY: ${QWEN_API_KEY:?Set QWEN_API_KEY in .env}
+      OPENAI_BASE_URL: ${QWEN_BASE_URL:-https://dashscope-intl.aliyuncs.com/compatible-mode/v1}
+      OPENAI_MODEL: ${QWEN_MODEL:-qwen3-coder-plus}
+    volumes:
+      - qwen_agent_home:/home/qwen/.qwen
+      - qwen_agent_workspace:/workspace
+    ports: ["${QWEN_AGENT_PORT:-4170}:4170"]
   frontend:
-    build: {context: ./frontend, args: {VITE_API_URL: /api}}
-    depends_on: [backend]
+    build:
+      context: ./frontend
+      args:
+        VITE_API_URL: /api
+        VITE_QWEN_AGENT_URL: ${VITE_QWEN_AGENT_URL:-http://localhost:4170}
+    depends_on: [backend, qwen-agent]
     ports: ["${FRONTEND_PORT:-3000}:80"]
 volumes:
   postgres_data:
+  qwen_agent_home:
+  qwen_agent_workspace:
