@@ -38,6 +38,10 @@ app:
     max-response-bytes: ${NOTIFICATION_MAX_RESPONSE_BYTES:65536}
     max-redirects: ${NOTIFICATION_MAX_REDIRECTS:2}
     test-interval: ${NOTIFICATION_TEST_INTERVAL:1m}
+  qwen-agent:
+    url: ${QWEN_AGENT_INTERNAL_URL:http://localhost:4170}
+    token: ${QWEN_SERVER_TOKEN:}
+    timeout: ${QWEN_AGENT_TIMEOUT:PT2M}
 springdoc:
   swagger-ui:
     path: /swagger-ui.html

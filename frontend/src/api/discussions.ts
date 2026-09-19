@@ -7,3 +7,10 @@ export async function uploadAttachment(file:File){
   const form=new FormData();form.append('file',file);
   return api.post<{url:string;name:string}>('/attachments',form,{headers:{'Content-Type':undefined}}).then(response=>response.data);
 }
+
+export const aiApi={
+  chatSession:()=>api.post<{sessionId:string}>('/ai/chat/session').then(r=>r.data),
+  improve:(title:string,body:string)=>api.post<{text:string}>('/ai/drafts/improve',{title,body}).then(r=>r.data),
+  summary:(id:number)=>api.post<{text:string}>(`/ai/discussions/${id}/summary`).then(r=>r.data),
+  replyDraft:(id:number,instruction='')=>api.post<{text:string}>(`/ai/discussions/${id}/reply-draft`,{instruction}).then(r=>r.data)
+};
