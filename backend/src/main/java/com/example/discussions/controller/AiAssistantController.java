@@ -57,7 +57,9 @@ public class AiAssistantController {
 
   @PostMapping("/discussions/{id}/summary")
   public AiResult summary(@PathVariable Long id) {
-    return new AiResult(assistant.summary(find(id)));
+    var discussion = discussions.findWithCommentsById(id)
+        .orElseThrow(() -> ApiException.notFound("Обсуждение не найдено"));
+    return new AiResult(assistant.summary(discussion));
   }
 
   @PostMapping("/discussions/{id}/reply-draft")
