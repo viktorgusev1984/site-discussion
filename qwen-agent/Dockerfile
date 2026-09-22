@@ -1,5 +1,8 @@
 FROM node:22-alpine
 
+# The daemon's process-tree reaper shells out to `ps -o state=,nlwp=`, which busybox ps rejects.
+RUN apk add --no-cache procps
+
 RUN npm install --global @qwen-code/qwen-code@0.24.1 \
     && addgroup -S qwen \
     && adduser -S -G qwen -h /home/qwen qwen \

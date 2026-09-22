@@ -35,7 +35,7 @@ services:
       SMTP_AUTH: ${SMTP_AUTH:-false}
       SMTP_STARTTLS: ${SMTP_STARTTLS:-false}
       QWEN_AGENT_INTERNAL_URL: http://qwen-agent:4170
-      QWEN_SERVER_TOKEN: ${QWEN_SERVER_TOKEN}
+      QWEN_SERVER_TOKEN: ${QWEN_SERVER_TOKEN:?Set QWEN_SERVER_TOKEN in .env}
     depends_on:
       postgres: {condition: service_healthy}
       qwen-agent: {condition: service_healthy}
@@ -50,7 +50,9 @@ services:
     volumes:
       - qwen_agent_home:/home/qwen/.qwen
       - qwen_agent_workspace:/workspace
-    ports: ["${QWEN_AGENT_PORT:-4170}:4170"]
+    # Loopback only: the daemon serves its Web Shell UI without auth, so publishing it on all
+    # interfaces would expose the console to the network. The backend reaches it over the compose net.
+    ports: ["127.0.0.1:${QWEN_AGENT_PORT:-4170}:4170"]
   frontend:
     build:
       context: ./frontend

@@ -15,4 +15,9 @@ describe('AI assistant conversation',()=>{
     expect(await screen.findByTestId('qwen-web-shell')).toHaveTextContent('550e8400-e29b-41d4-a716-446655440000');
     expect(screen.getByRole('heading',{name:'AI-помощник'})).toBeInTheDocument();
   });
+  it('surfaces the reason reported by the backend when the session cannot be opened',async()=>{
+    chatSession.mockRejectedValueOnce({response:{data:{error:'AI-помощник не настроен'}}});
+    render(<MemoryRouter><AiAssistantPage/></MemoryRouter>);
+    expect(await screen.findByRole('alert')).toHaveTextContent('AI-помощник не настроен');
+  });
 });

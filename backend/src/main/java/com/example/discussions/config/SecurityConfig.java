@@ -1,5 +1,6 @@
 package com.example.discussions.config;
 
+import com.example.discussions.security.AuthErrorWriter;
 import com.example.discussions.security.JwtFilter;
 import java.util.Arrays;
 import java.util.List;
@@ -36,7 +37,7 @@ public class SecurityConfig {
     }
 
     @Bean
-    SecurityFilterChain chain(HttpSecurity http, JwtFilter jwt) throws Exception {
+    SecurityFilterChain chain(HttpSecurity http, JwtFilter jwt, AuthErrorWriter authErrors) throws Exception {
         return http.csrf(csrf -> csrf.disable())
                 .cors(cors -> cors.configurationSource(request -> {
                     var configuration = new CorsConfiguration();
@@ -61,6 +62,9 @@ public class SecurityConfig {
                         .permitAll()
                         .anyRequest()
                         .authenticated())
+                .exceptionHandling(handling -> handling
+                        .authenticationEntryPoint(authErrors)
+                        .accessDeniedHandler(authErrors))
                 .addFilterBefore(jwt, UsernamePasswordAuthenticationFilter.class)
                 .build();
     }

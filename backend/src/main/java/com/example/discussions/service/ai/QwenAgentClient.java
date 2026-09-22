@@ -11,6 +11,8 @@ import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
 import java.util.Map;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
@@ -18,6 +20,7 @@ import org.springframework.stereotype.Service;
 /** Adapter for the Qwen Code daemon. The agent loop remains outside the Spring process. */
 @Service
 public class QwenAgentClient {
+  private static final Logger log = LoggerFactory.getLogger(QwenAgentClient.class);
   private final HttpClient http;
   private final ObjectMapper json;
   private final URI endpoint;
@@ -32,7 +35,9 @@ public class QwenAgentClient {
     this.endpoint = endpoint;
     this.token = token;
     this.timeout = timeout;
-    this.http = HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(5)).build();
+    // The daemon drops any request carrying an Upgrade header, so the default h2c handshake never reaches it.
+    this.http = HttpClient.newBuilder().version(HttpClient.Version.HTTP_1_1)
+        .connectTimeout(Duration.ofSeconds(5)).build();
   }
 
   public String run(String prompt) {
@@ -48,14 +53,15 @@ public class QwenAgentClient {
       Instant deadline = Instant.now().plus(timeout);
       while (Instant.now().isBefore(deadline)) {
         JsonNode turn = get("/session/" + sessionId + "/turns/" + promptId);
-        String status = turn.path("status").asText();
-        if ("completed".equals(status) || "complete".equals(status) || turn.hasNonNull("resultText")) {
+        String state = turn.path("state").asText();
+        if ("error".equals(state) || "failed".equals(state) || "cancelled".equals(state)) {
+          log.warn("Qwen turn {} in session {} ended as {}: {}", promptId, sessionId, state, turn.path("error"));
+          throw new ApiException(HttpStatus.BAD_GATEWAY, "AI-помощник не смог выполнить запрос");
+        }
+        if ("completed".equals(state) || turn.hasNonNull("resultText")) {
           String result = turn.path("resultText").asText().trim();
           if (result.isBlank()) throw new IllegalStateException("Qwen returned an empty result");
           return result;
-        }
-        if ("failed".equals(status) || "error".equals(status) || "cancelled".equals(status)) {
-          throw new IllegalStateException("Qwen turn failed");
         }
         Thread.sleep(250);
       }
@@ -66,6 +72,7 @@ public class QwenAgentClient {
       Thread.currentThread().interrupt();
       throw new ApiException(HttpStatus.SERVICE_UNAVAILABLE, "Запрос к AI-помощнику прерван");
     } catch (Exception e) {
+      log.warn("Qwen prompt call failed", e);
       throw new ApiException(HttpStatus.BAD_GATEWAY, "AI-помощник временно недоступен");
     }
   }
@@ -77,6 +84,7 @@ public class QwenAgentClient {
       if (sessionId.isBlank()) throw new IllegalStateException("Missing Qwen session identity");
       return sessionId;
     } catch (Exception e) {
+      log.warn("Qwen session creation failed", e);
       throw new ApiException(HttpStatus.BAD_GATEWAY, "AI-помощник временно недоступен");
     }
   }

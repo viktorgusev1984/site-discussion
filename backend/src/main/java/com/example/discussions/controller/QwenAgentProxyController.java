@@ -26,7 +26,9 @@ public class QwenAgentProxyController {
   private static final Pattern SESSION_PATH = Pattern.compile("^/session/([0-9a-fA-F-]{36})(?:/.*)?$");
   private static final Set<String> FORWARDED_REQUEST_HEADERS = Set.of(
       "accept", "content-type", "last-event-id", "x-qwen-event-epoch", "x-qwen-client-id");
-  private final HttpClient http = HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(5)).build();
+  // The daemon drops any request carrying an Upgrade header, so the default h2c handshake never reaches it.
+  private final HttpClient http = HttpClient.newBuilder().version(HttpClient.Version.HTTP_1_1)
+      .connectTimeout(Duration.ofSeconds(5)).build();
   private final AiChatSessionRepository sessions;
   private final CurrentUser current;
   private final URI daemon;

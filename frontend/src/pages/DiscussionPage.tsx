@@ -1,6 +1,7 @@
 import {FormEvent,useEffect,useState} from 'react';
 import {Link,useLocation,useParams} from 'react-router-dom';
 import {aiApi,discussionsApi} from '../api/discussions';
+import {apiError} from '../api/client';
 import {useAuth} from '../auth/AuthContext';
 import type {Discussion} from '../types';
 import EngagementActions from '../components/EngagementActions';
@@ -20,8 +21,8 @@ export default function DiscussionPage(){
   async function comment(text:string,parentId?:number){await discussionsApi.comment(item!.id,text,parentId);await load()}
   async function transition(action:'close'|'cancel'){setError('');try{setItem(await discussionsApi[action](item!.id))}catch{setError('Не удалось изменить статус обсуждения')}}
   async function addJira(event:FormEvent){event.preventDefault();setError('');try{setItem(await discussionsApi.addJira(item!.id,jiraKey,jiraUrl));setJiraOpen(false);setJiraKey('');setJiraUrl('')}catch{setError('Проверьте ключ и HTTPS-ссылку задачи Jira')}}
-  async function createSummary(){setSummarizing(true);setError('');try{setSummary((await aiApi.summary(item!.id)).text)}catch{setError('AI-помощник временно недоступен')}finally{setSummarizing(false)}}
-  async function createReplyDraft(){setDrafting(true);setError('');try{setBody((await aiApi.replyDraft(item!.id)).text)}catch{setError('Не удалось подготовить черновик ответа')}finally{setDrafting(false)}}
+  async function createSummary(){setSummarizing(true);setError('');try{setSummary((await aiApi.summary(item!.id)).text)}catch(e){setError(apiError(e,'AI-помощник временно недоступен'))}finally{setSummarizing(false)}}
+  async function createReplyDraft(){setDrafting(true);setError('');try{setBody((await aiApi.replyDraft(item!.id)).text)}catch(e){setError(apiError(e,'Не удалось подготовить черновик ответа'))}finally{setDrafting(false)}}
   return <main className="detail"><Link to="/">← Все обсуждения</Link><div className="detail-grid"><article>
     <div className="meta"><span className="category-dot" style={{background:item.category.color}}/>{item.category.name}<span className={`status ${item.status.toLowerCase()}`}>{item.status}</span></div>
     <h1>{item.title}</h1><div className="byline"><span className="avatar">{item.author.displayName[0]}</span>{item.author.displayName} · {new Date(item.createdAt).toLocaleDateString('ru')} {(author||administrator)&&<Link to={`/discussions/${id}/edit`}>Редактировать</Link>}</div>
